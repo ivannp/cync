@@ -1,0 +1,28 @@
+//
+// protoc --go_out=. fileheader.proto
+//
+
+syntax = "proto3";
+
+package sotcore;
+
+option csharp_namespace = "CloudSync.Core";
+
+enum CompressionType {
+    ZLIB = 0;
+}
+
+enum Cipher {
+    UNDEFINED   = 0;
+    AES         = 1;
+    TWOFISH     = 2;
+    SERPENT     = 3;
+}
+
+message FileHeader {
+    CompressionType compression_type = 1;
+    int32 compression_level = 2;
+
+    repeated Cipher ciphers = 3;
+    repeated bytes ivs = 4;
+}

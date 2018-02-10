@@ -1,0 +1,36 @@
+//
+// protoc --go_out=. basedir.proto
+//
+
+syntax = "proto3";
+
+package sotcore;
+
+option csharp_namespace = "CloudSync.Core";
+
+enum DirEntryType {
+    FILE = 0;
+    DIR  = 1;
+}
+
+message VersionEntry {
+    string uuid				= 1;
+	int32 attributes		= 2;
+	int64 creationTime		= 3;
+	int64 lastAccessTime	= 4;
+	int64 lastWriteTime		= 5;
+    uint64 Length			= 6;  
+    bytes checksum			= 7;
+	string id				= 8;
+}
+
+message DirEntry {
+    DirEntryType type = 1;
+    repeated VersionEntry versions = 2;
+    int32 latest = 3;
+}
+
+message BaseDir {
+    map<string, DirEntry> entries = 1;
+    string eyecatcher = 2; 
+}
