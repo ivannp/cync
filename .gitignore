@@ -30,3 +30,17 @@
 *.exe
 *.out
 *.app
+
+packages/
+.vs/
+cync/bin/
+cync/obj/
+cync/x64/
+cyncore/bin/
+cyncore/obj/
+cyncore/x64/
+encoding/x64/
+unitests/bin/
+unitests/obj/
+unitests/x64/
+x64/
