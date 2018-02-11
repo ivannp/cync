@@ -555,7 +555,7 @@ namespace CloudSync.Core
                         var srcDirPath = LexicalPath.Combine(tt.Item1, pp.Key);
                         Directory.CreateDirectory(destDirPath);
                         queue.Enqueue(Tuple.Create(srcDirPath, destDirPath));
-                        logger.Info($"Queueing directory {srcDirPath} [target: {destDirPath}]");
+                        logger.Debug($"Queueing directory {srcDirPath} [target: {destDirPath}]");
                     }
                     else
                     {
@@ -564,11 +564,11 @@ namespace CloudSync.Core
                         var bb = srcDir.PullFile(pp.Key, destFullPath, false);
                         if (bb)
                         {
-                            logger.Info($"Copied {srcFullPath} to {destFullPath}");
+                            logger.Debug($"Copied {srcFullPath} to {destFullPath}");
                         }
                         else
                         {
-                            logger.Info($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
+                            logger.Debug($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
                         }
                     }
                 }
@@ -617,7 +617,7 @@ namespace CloudSync.Core
                     {
                         string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                         queue.Enqueue(Tuple.Create(src, fullDestPath));
-                        logger.Info($"Queueing directory {src} [target: {fullDestPath}]");
+                        logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
                     }
                     else
                     {
@@ -629,7 +629,7 @@ namespace CloudSync.Core
                 {
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    logger.Info($"Queueing directory {src} [target: {fullDestPath}]");
+                    logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
                 }
 
                 // Process the queue
@@ -661,21 +661,21 @@ namespace CloudSync.Core
                             // Enque the directory for later processing
                             var destFullPath = LexicalPath.Combine(tt.Item2, Path.GetFileName(ee));
                             queue.Enqueue(Tuple.Create(ee, destFullPath));
-                            logger.Info($"Queueing directory {ee} [target: {destFullPath}]");
+                            logger.Debug($"Queueing directory {ee} [target: {destFullPath}]");
                         }
                         else
                         {
                             // A file - copy it
                             var added = curDestDir.PushFile(ee, Path.GetFileName(ee), false);
-                            if (added) logger.Info($"Added {ee} as {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}");
-                            else logger.Info($"Skipped {ee}. The repository file {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))} is newer or the same.");
+                            if (added) logger.Debug($"Added {ee} as {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}");
+                            else logger.Debug($"Skipped {ee}. The repository file {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))} is newer or the same.");
                         }
                     }
                 }
             }
         }
 
-        public void List(ref Context context, string path)
+        public void List(ref Context context, string path, Action<string> lineAction = null)
         {
             var nameCol = new List<string>();
             int nameColMax = 0;

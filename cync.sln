@@ -28,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "unitests", "unitests\unites
 		{927133D5-6D73-40F3-B665-753E6FC7AAC0} = {927133D5-6D73-40F3-B665-753E6FC7AAC0}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cync", "cync\cync.csproj", "{55440A83-A2E6-4AA0-83A5-6CEB4A533442}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cync", "cync\cync.csproj", "{55440A83-A2E6-4AA0-83A5-6CEB4A533442}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

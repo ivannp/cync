@@ -13,7 +13,10 @@ namespace CloudSync.Core
 {
     public class GoogleDriveStorage : IStorage
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
+
+        private readonly string _rootPath;
+        private readonly string _store;
 
         public void CleanLocalFile(string path)
         {
@@ -22,7 +25,7 @@ namespace CloudSync.Core
 
         public void CreateDirectory(string path)
         {
-            path = LexicalPath.Combine(RootPath, LexicalPath.Clean(path));
+            path = LexicalPath.Combine(_rootPath, LexicalPath.Clean(path));
             var parentId = "root";
             var folders = path.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             var currentPath = "";
@@ -129,7 +132,7 @@ namespace CloudSync.Core
 
         public LocalPath Download(string src)
         {
-            src = LexicalPath.Combine(RootPath, src);
+            src = LexicalPath.Combine(_rootPath, src);
             string id = GetId(src);
             var req = service.Files.Get(id);
             LocalPath res = new LocalPath(Path.GetTempFileName());
@@ -142,7 +145,7 @@ namespace CloudSync.Core
 
         public void Download(string src, string dest)
         {
-            src = LexicalPath.Combine(RootPath, src);
+            src = LexicalPath.Combine(_rootPath, src);
             string id = GetId(src);
             var req = service.Files.Get(id);
             using (var stream = File.OpenWrite(dest))
@@ -151,7 +154,7 @@ namespace CloudSync.Core
 
         public void RemoveFile(string path)
         {
-            path = LexicalPath.Combine(RootPath, path);
+            path = LexicalPath.Combine(_rootPath, path);
             string id = GetId(path);
             var req = service.Files.Delete(id);
             req.Execute();
@@ -161,7 +164,7 @@ namespace CloudSync.Core
 
         public void Upload(string src, string dest, bool finalizeLocal = true)
         {
-            dest = LexicalPath.Combine(RootPath, dest);
+            dest = LexicalPath.Combine(_rootPath, dest);
             var folder = LexicalPath.GetDirectoryName(dest);
             string id = GetId(folder);
             var fileName = LexicalPath.GetFileName(dest);
@@ -176,7 +179,7 @@ namespace CloudSync.Core
             var files = req.Execute().Files;
             if (files?.Count > 0)
             {
-                if (files.Count > 1) logger.Warn($"{files.Count} files returned, expected one.");
+                if (files.Count > 1) _logger.Warn($"{files.Count} files returned, expected one.");
 
                 // Update an existing file
                 using (var stream = new FileStream(src, FileMode.Open))
@@ -202,18 +205,6 @@ namespace CloudSync.Core
 
             if (finalizeLocal) File.Delete(src);
         }
-
-        private string rootPath;
-        private string RootPath
-        {
-            get { return rootPath; }
-            set
-            {
-                rootPath = value;
-            }
-        }
-
-        private string Store { get; set; }
 
         public string GetId(string path, bool exception = true)
         {
@@ -262,11 +253,12 @@ namespace CloudSync.Core
 
         public JObject ToJson()
         {
-            var res = new JObject();
-            res["Type"] = "GoogleDrive";
-            res["Path"] = RootPath;
-            res["Store"] = Store;
-            return res;
+            return new JObject
+            {
+                ["Type"] = "GoogleDrive",
+                ["Path"] = _rootPath,
+                ["Store"] = _store
+            };
         }
 
         private DriveService service;
@@ -281,8 +273,8 @@ namespace CloudSync.Core
         /// <param name="store">The path where the token is cached and/or refreshed to</param>
         public GoogleDriveStorage(string rootPath, string store)
         {
-            RootPath = rootPath;
-            Store = store;
+            _rootPath = rootPath;
+            _store = store;
 
             folderId = new Dictionary<string, string>();
 

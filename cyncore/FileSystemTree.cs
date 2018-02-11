@@ -15,20 +15,8 @@ namespace CloudSync.Core
         {
         }
 
-        public void List(ref Context context, string path)
+        public void List(ref Context context, string path, Action<string> lineAction = null)
         {
-            var nameCol = new List<string>();
-            int nameColMax = 0;
-
-            var typeCol = new List<string>();
-            int typeColMax = 0;
-
-            var sizeCol = new List<string>();
-            int sizeColMax = 0;
-
-            var timeCol = new List<string>();
-            int timeColMax = 0;
-
             path = LexicalPath.Clean(path);
             if(path != "/")
             {
@@ -37,41 +25,7 @@ namespace CloudSync.Core
                     throw new Exception($"The 'list' command is only supported for folders.");
             }
 
-            var items = context.Storage.ListDirectory(path);
-
-            foreach (var item in items)
-            {
-                nameCol.Add(item.Name);
-                nameColMax = Math.Max(item.Name.Length, nameColMax);
-                var type = item.IsDir ? "dir" : "file";
-                typeCol.Add(type);
-                typeColMax = Math.Max(type.Length, typeColMax);
-
-                var size = item.IsDir ? "---" : String.Format("{0:n0}", item.Size);
-                sizeCol.Add(size);
-                sizeColMax = Math.Max(size.Length, sizeColMax);
-            }
-
-            var nameColMin = 15;
-            var nameColSize = Math.Max(Math.Min(30, nameColMax), nameColMin);
-            for (var ii = 0; ii < nameCol.Count; ++ii)
-            {
-                StringBuilder sb = new StringBuilder(nameCol[ii]);
-                if (sb.Length > nameColSize) sb.Remove(nameColSize, sb.Length - nameColSize);
-                else if (sb.Length < nameColMin) sb.Append(' ', nameColMin - sb.Length);
-
-                sb.Append(' ', 1 + nameColSize - sb.Length);
-
-                if (typeCol[ii].Length < typeColMax) sb.Append(' ', typeColMax - typeCol[ii].Length);
-                sb.Append(typeCol[ii]);
-                sb.Append(' ');
-
-                sb.Append(' ', sizeColMax - sizeCol[ii].Length);
-                sb.Append(sizeCol[ii]);
-                sb.Append(' ');
-
-                Console.WriteLine(sb.ToString());
-            }
+            new ConsoleListOutputter(lineAction).Output(context.Storage.ListDirectory(path));
         }
 
         public void Push(ref Context context, string src, string dest)
@@ -113,13 +67,13 @@ namespace CloudSync.Core
 
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, Path.GetFileName(src));
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    _logger.Info($"Queueing directory {src} [target: {fullDestPath}]");
+                    _logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
                 }
                 else
                 {
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, Path.GetFileName(src));
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    _logger.Info($"Queueing directory {src} [target: {fullDestPath}]");
+                    _logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
                 }
 
                 // Process the queue
@@ -145,7 +99,7 @@ namespace CloudSync.Core
                             // Enque the directory for later processing
                             var destFullPath = LexicalPath.Combine(tt.Item2, Path.GetFileName(ee));
                             queue.Enqueue(Tuple.Create(ee, destFullPath));
-                            _logger.Info($"Queueing directory {ee} [target: {destFullPath}]");
+                            _logger.Debug($"Queueing directory {ee} [target: {destFullPath}]");
                         }
                         else
                         {
@@ -156,11 +110,11 @@ namespace CloudSync.Core
                             if(upload)
                             {
                                 context.Storage.Upload(ee, fullDestPath, finalizeLocal: false);
-                                _logger.Info($"Added {ee} as {fullDestPath}");
+                                _logger.Debug($"Added {ee} as {fullDestPath}");
                             }
                             else
                             {
-                                _logger.Info($"Skipped {ee}. The repository file {fullDestPath} is newer or the same.");
+                                _logger.Debug($"Skipped {ee}. The repository file {fullDestPath} is newer or the same.");
                             }
                         }
                     }
@@ -224,7 +178,7 @@ namespace CloudSync.Core
                         var srcDirPath = LexicalPath.Combine(tt.Item1, item.Name);
                         Directory.CreateDirectory(destDirPath);
                         queue.Enqueue(Tuple.Create(srcDirPath, destDirPath));
-                        _logger.Info($"Queueing directory {srcDirPath} [target: {destDirPath}]");
+                        _logger.Debug($"Queueing directory {srcDirPath} [target: {destDirPath}]");
                     }
                     else
                     {
@@ -236,11 +190,11 @@ namespace CloudSync.Core
                         {
                             context.Storage.Download(srcFullPath, destFullPath);
                             File.SetLastWriteTime(destFullPath, item.LastWriteTime.Value);
-                            _logger.Info($"Copied {srcFullPath} to {destFullPath}");
+                            _logger.Debug($"Copied {srcFullPath} to {destFullPath}");
                         }
                         else
                         {
-                            _logger.Info($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
+                            _logger.Debug($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
                         }
                     }
                 }

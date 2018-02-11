@@ -1,4 +1,5 @@
 ﻿using CloudSync.Core;
+using ColoredConsole;
 using CommandLine;
 using Newtonsoft.Json.Linq;
 using NLog;
@@ -32,6 +33,9 @@ namespace CloudSync.Tool
 
             [Option("google-drive", Default = null, HelpText = "Initialize a Google Drive repository at the given path.")]
             public string GoogleDrive { get; set; }
+
+            [Option("onedrive", Default = null, HelpText = "Initialize a OneDrive repository at the given path.")]
+            public string OneDrive { get; set; }
 
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
@@ -159,103 +163,14 @@ namespace CloudSync.Tool
             [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
             public bool UnsecuredGoogleDrive { get; set; }
 
+            [Option("unsecured-onedrive", Default = false, HelpText = "Synchronize OneDrive path to a local path. No encryption, no compression.")]
+            public bool UnsecuredOneDrive { get; set; }
+
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
 
             [Value(0, Max = 1, Required = false)]
             public IEnumerable<string> Items { get; set; }
-        }
-
-        static void SaveContext(JObject jcfg, string folderPath)
-        {
-            // Merge with any previous context
-            var path = Path.Combine(folderPath, "saved-context.json");
-            if (File.Exists(path))
-            {
-                var jsaved = JObject.Parse(File.ReadAllText(path));
-                jsaved.Merge(jcfg, new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union });
-                jcfg = jsaved;
-            }
-            Directory.CreateDirectory(folderPath);
-            File.WriteAllText(path, jcfg.ToString());
-        }
-
-        static JObject LoadContext(string folderPath)
-        {
-            var path = Path.Combine(folderPath, "saved-context.json");
-            if (File.Exists(path))
-            {
-                return JObject.Parse(File.ReadAllText(path));
-            }
-            return new JObject();
-        }
-
-        static void CmdList(ListOptions oo)
-        {
-            var jcfg = LoadContext(DotPath);
-
-            Context context = new Context { };
-
-            string path = "/";
-
-            var items = new List<string>(oo.Items);
-
-            if (items.Count == 1)
-                path = items[0];
-
-            IObjectTree tree = null;
-
-            if (oo.Local != null)
-            {
-                context.Storage = new LocalStorage(oo.Local);
-                context.InitRepoFromStorage();
-
-                jcfg["Repository"] = context.Storage.ToJson();
-
-                tree = new ObjectTree();
-            }
-            else if (oo.GoogleDrive != null)
-            {
-                string tokenPath = oo.TokenPath ?? DotPath;
-                context.Storage = new GoogleDriveStorage(oo.GoogleDrive, tokenPath);
-                context.InitRepoFromStorage();
-
-                jcfg["Repository"] = context.Storage.ToJson();
-
-                tree = new ObjectTree();
-            }
-            else if (oo.UnsecuredGoogleDrive)
-            {
-                string tokenPath = oo.TokenPath ?? DotPath;
-                context.Storage = new GoogleDriveStorage("/", tokenPath);
-                // No need to initialize the repository
-
-                jcfg["Repository"] = context.Storage.ToJson();
-
-                tree = new FileSystemTree();
-            }
-            else
-            {
-                context.Storage = RepoFromJson(jcfg);
-                context.InitRepoFromStorage();
-
-                tree = new ObjectTree();
-            }
-
-            if (oo.KeyFile != null)
-            {
-                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
-                jcfg["KeyFile"] = oo.KeyFile;
-            }
-            else if (jcfg["KeyFile"] != null)
-            {
-                context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
-            }
-
-            tree.List(ref context, path);
-
-            // Save the current context
-            SaveContext(jcfg, DotPath);
         }
 
         static void CmdInit(InitOptions io)
@@ -278,6 +193,13 @@ namespace CloudSync.Tool
             {
                 string tokenPath = io.TokenPath ?? dotPath;
                 context.Storage = new GoogleDriveStorage(io.GoogleDrive, tokenPath);
+
+                tree = new ObjectTree();
+            }
+            else if (io.OneDrive != null)
+            {
+                string tokenPath = io.TokenPath ?? dotPath;
+                context.Storage = new OneDriveStorage(io.OneDrive, tokenPath);
 
                 tree = new ObjectTree();
             }
@@ -494,6 +416,86 @@ namespace CloudSync.Tool
             SaveContext(jcfg, DotPath);
         }
 
+        static void CmdList(ListOptions oo)
+        {
+            var jcfg = LoadContext(DotPath);
+
+            Context context = new Context { };
+
+            string path = "/";
+
+            var items = new List<string>(oo.Items);
+
+            if (items.Count == 1)
+                path = items[0];
+
+            IObjectTree tree = null;
+
+            if (oo.Local != null)
+            {
+                context.Storage = new LocalStorage(oo.Local);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else if (oo.GoogleDrive != null)
+            {
+                string tokenPath = oo.TokenPath ?? DotPath;
+                context.Storage = new GoogleDriveStorage(oo.GoogleDrive, tokenPath);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else if (oo.UnsecuredGoogleDrive)
+            {
+                string tokenPath = oo.TokenPath ?? DotPath;
+                context.Storage = new GoogleDriveStorage("/", tokenPath);
+                // No need to initialize the repository
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new FileSystemTree();
+            }
+            else if (oo.UnsecuredOneDrive)
+            {
+                string tokenPath = oo.TokenPath ?? DotPath;
+                context.Storage = new OneDriveStorage("/", tokenPath);
+                // No need to initialize the repository
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new FileSystemTree();
+            }
+            else
+            {
+                context.Storage = RepoFromJson(jcfg);
+                context.InitRepoFromStorage();
+
+                tree = new ObjectTree();
+            }
+
+            if (oo.KeyFile != null)
+            {
+                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
+                jcfg["KeyFile"] = oo.KeyFile;
+            }
+            else if (jcfg["KeyFile"] != null)
+            {
+                context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
+            }
+
+            void lineAction(string s) => ColorConsole.WriteLine(s);
+
+            tree.List(ref context, path, lineAction);
+
+            // Save the current context
+            SaveContext(jcfg, DotPath);
+        }
+
         static void CmdEncode(EncodeOptions oo)
         {
             if (oo.Verbose) LogHelper.MakeConsoleVerbose();
@@ -535,6 +537,30 @@ namespace CloudSync.Tool
                 Console.WriteLine(BitConverter.ToString(key).Replace("-", string.Empty));
             else
                 Console.WriteLine(Convert.ToBase64String(key));
+        }
+
+        static void SaveContext(JObject jcfg, string folderPath)
+        {
+            // Merge with any previous context
+            var path = Path.Combine(folderPath, "saved-context.json");
+            if (File.Exists(path))
+            {
+                var jsaved = JObject.Parse(File.ReadAllText(path));
+                jsaved.Merge(jcfg, new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union });
+                jcfg = jsaved;
+            }
+            Directory.CreateDirectory(folderPath);
+            File.WriteAllText(path, jcfg.ToString());
+        }
+
+        static JObject LoadContext(string folderPath)
+        {
+            var path = Path.Combine(folderPath, "saved-context.json");
+            if (File.Exists(path))
+            {
+                return JObject.Parse(File.ReadAllText(path));
+            }
+            return new JObject();
         }
 
         static void Main(string[] args)
