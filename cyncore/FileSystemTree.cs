@@ -42,10 +42,10 @@ namespace CloudSync.Core
                 // src is a folder, let's define the desired behaviour, following
                 // the design of rsync:
                 //
-                // sot push c:/home/user/documents/ /user/documents
+                // cync push c:/home/user/documents/ /user/documents
                 //    Content of c:/home/user/documents goes into /user
                 //
-                // sot push c:/home/user/documents /user/documents
+                // cync push c:/home/user/documents /user/documents
                 //    Content of c:/home/user/documents goes into c:/home/user/documents
                 //
                 // Notice the difference caused by the presence/lack of the final 
@@ -141,10 +141,10 @@ namespace CloudSync.Core
                 // src is a folder, let's define the desired behaviour, following
                 // the design of rsync:
                 //
-                // sot pull /user/documents/ c:/home/user
+                // cync pull /user/documents/ c:/home/user
                 //    Content of /user/documents goes into c:/home/user
                 //
-                // sot pull /user/documents c:/home/user
+                // cync pull /user/documents c:/home/user
                 //    Content of /user/documents goes into c:/home/user/documents
                 //
                 // Notice the difference caused by the presence/lack of the final slash
