@@ -37,6 +37,24 @@ namespace CloudSync.Tool
             [Option("onedrive", Default = null, HelpText = "Initialize a OneDrive repository at the given path.")]
             public string OneDrive { get; set; }
 
+            [Option("sftp", Default = null, HelpText = "Initialize a repository over SFTP, at the given path.")]
+            public string Sftp { get; set; }
+
+            [Option("sftp-key", Default = null, HelpText = "SFTP key file to use for authentication.")]
+            public string SftpKeyPath { get; set; }
+
+            [Option("sftp-user", Default = null, HelpText = "SFTP user to use for authentication.")]
+            public string SftpUser { get; set; }
+
+            [Option("sftp-password", Default = null, HelpText = "SFTP password to use for authentication.")]
+            public string SftpPassword { get; set; }
+
+            [Option("sftp-host", Default = null, HelpText = "SFTP server.")]
+            public string SftpHost { get; set; }
+
+            [Option("sftp-port", Default = null, HelpText = "SFTP port.")]
+            public int? SftpPort { get; set; }
+
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
 
@@ -110,6 +128,12 @@ namespace CloudSync.Tool
             [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize to Google Drive path. No encryption, no compression.")]
             public bool UnsecuredGoogleDrive { get; set; }
 
+            [Option("unsecured-onedrive", Default = false, HelpText = "Synchronize to a OneDrive path. No encryption, no compression.")]
+            public bool UnsecuredOneDrive { get; set; }
+
+            [Option("sftp", Default = null, HelpText = "Synchronize to a SFTP repository.")]
+            public string Sftp { get; set; }
+
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
 
@@ -138,6 +162,9 @@ namespace CloudSync.Tool
             [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
             public bool UnsecuredGoogleDrive { get; set; }
 
+            [Option("sftp", Default = null, HelpText = "Synchronize an SFTP path to a local path.")]
+            public string Sftp { get; set; }
+
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
 
@@ -160,11 +187,14 @@ namespace CloudSync.Tool
             [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
-            [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
+            [Option("unsecured-google-drive", Default = false, HelpText = "List a plain (no encryption, no compression) Google Drive folder.")]
             public bool UnsecuredGoogleDrive { get; set; }
 
-            [Option("unsecured-onedrive", Default = false, HelpText = "Synchronize OneDrive path to a local path. No encryption, no compression.")]
+            [Option("unsecured-onedrive", Default = false, HelpText = "List a plain (no encryption, no compression) OneDrive folder.")]
             public bool UnsecuredOneDrive { get; set; }
+
+            [Option("sftp", Default = null, HelpText = "List a path in a SFTP repository.")]
+            public string Sftp { get; set; }
 
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
@@ -203,6 +233,12 @@ namespace CloudSync.Tool
 
                 tree = new ObjectTree();
             }
+            else if (io.Sftp != null)
+            {
+                context.Storage = new SftpStorage(io.SftpUser, io.SftpPassword, io.SftpKeyPath, io.SftpHost, io.SftpPort, io.Sftp, createRoot: true);
+
+                tree = new ObjectTree();
+            }
 
             var jcfg = new JObject
             {
@@ -219,29 +255,6 @@ namespace CloudSync.Tool
 
             // Save the re-usable portion of the current context
             SaveContext(jcfg, dotPath);
-        }
-
-        public static string DotPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".sot"); } }
-
-        static IStorage RepoFromJson(JObject json)
-        {
-            if (json == null) return null;
-            var repo = json["Repository"];
-            if (repo == null) return null;
-            var type = repo["Type"].ToString().ToLower();
-            IStorage res = null;
-            switch (type)
-            {
-                case "local":
-                    res = new LocalStorage(repo["Path"].ToString());
-                    break;
-
-                case "googledrive":
-                    string tokenPath = repo["Store"] != null ? repo["Store"].ToString() : DotPath;
-                    res = new GoogleDriveStorage(repo["Path"].ToString(), tokenPath);
-                    break;
-            }
-            return res;
         }
 
         static void CmdPush(PushOptions oo)
@@ -293,6 +306,16 @@ namespace CloudSync.Tool
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
+                // No need to initialize the repository
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new FileSystemTree();
+            }
+            else if (oo.UnsecuredOneDrive)
+            {
+                string tokenPath = oo.TokenPath ?? DotPath;
+                context.Storage = new OneDriveStorage("/", tokenPath);
                 // No need to initialize the repository
 
                 jcfg["Repository"] = context.Storage.ToJson();
@@ -539,6 +562,46 @@ namespace CloudSync.Tool
                 Console.WriteLine(Convert.ToBase64String(key));
         }
 
+        public static string DotPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".sot"); } }
+
+        static IStorage RepoFromJson(JObject json)
+        {
+            if (json == null) return null;
+            var repo = json["Repository"];
+            if (repo == null) return null;
+            var type = repo["Type"].ToString().ToLower();
+            IStorage res = null;
+            switch (type)
+            {
+                case "local":
+                    res = new LocalStorage(repo["Path"].ToString());
+                    break;
+
+                case "googledrive":
+                    string tokenPath = repo["Store"] != null ? repo["Store"].ToString() : DotPath;
+                    res = new GoogleDriveStorage(repo["Path"].ToString(), tokenPath);
+                    break;
+
+                case "onedrive":
+                    // TODO(ivannp) Implement
+                    break;
+
+                case "sftp":
+                    res = new SftpStorage(
+                        user: repo["User"].Value<string>(),
+                        password: repo["Password"]?.Value<string>(),
+                        keyPath: repo["KeyPath"]?.Value<string>(),
+                        host: repo["Host"].Value<string>(),
+                        port: repo["Port"]?.Value<int>(),
+                        rootPath: repo["Path"].Value<string>());
+                    break;
+
+                default:
+                    throw new Exception($"Repository type {type} is not supported. Supported repositories are: local, googledrive, onedrive, sftp.");
+            }
+            return res;
+        }
+
         static void SaveContext(JObject jcfg, string folderPath)
         {
             // Merge with any previous context
@@ -579,7 +642,9 @@ namespace CloudSync.Tool
             }
             catch (Exception ee)
             {
-                _logger.Fatal(ee, $"sot encountered a fatal error: {ee.Message}");
+                _logger.Fatal(ee, $"sot encountered a fatal error: {ee.ToString()}");
+                if(ee.InnerException != null)
+                    _logger.Fatal(ee, $"sot encountered a fatal error: {ee.Message}");
             }
         }
     }

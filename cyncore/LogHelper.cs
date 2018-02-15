@@ -17,7 +17,7 @@ namespace CloudSync.Core
                 {
                     if(tt.Name == "consolelog")
                     {
-                        rr.EnableLoggingForLevel(LogLevel.Info);
+                        rr.EnableLoggingForLevel(LogLevel.Debug);
                         break;
                     }
                 }

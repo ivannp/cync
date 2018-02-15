@@ -5,7 +5,7 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
@@ -24,6 +24,8 @@ namespace CloudSync.Core
         private GraphServiceClient _graphServiceClient;
         private PublicClientApplication _clientApp = new PublicClientApplication(_clientId);
         private AuthenticationResult _auth;
+
+        private Dictionary<string, string> _folderIdCache;
 
         public OneDriveStorage(string rootPath, string store)
         {
@@ -45,12 +47,35 @@ namespace CloudSync.Core
 
         public void CleanLocalFile(string path)
         {
-            throw new NotImplementedException();
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
         }
 
         public void CreateDirectory(string path)
         {
-            throw new NotImplementedException();
+            path = LexicalPath.Clean(path);
+            var folders = path.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var currentPath = "/";
+
+            var parentId = _graphServiceClient.Drive.Root.Request().GetAsync().Result.Id;
+
+            foreach (var folder in folders)
+            {
+                currentPath = LexicalPath.Combine(currentPath, folder);
+                DriveItem item = GetItem(currentPath);
+                if (item == null)
+                {
+                    // Create the folder
+                    item = _graphServiceClient.Drive.Items[parentId].Children.Request().AddAsync(new DriveItem { Folder = new Folder(), Name = folder }).Result;
+                }
+                else if(item.Folder == null)
+                {
+                    throw new PathException($"Failed to create folder '{path}'. '{currentPath}' exists, but is a file.");
+                }
+
+                parentId = item.Id;
+            }
         }
 
         public FileInfo DefaultFileInfo(bool dir = true)
@@ -75,7 +100,29 @@ namespace CloudSync.Core
 
         public void Upload(string src, string dest, bool finalizeLocal = true)
         {
-            throw new NotImplementedException();
+            dest = LexicalPath.Combine(_rootPath, dest);
+            var fileName = LexicalPath.GetFileName(dest);
+
+            var item = GetItem(dest);
+            if(item != null)
+            {
+                if(item.Folder != null)
+                    throw new PathException($"Failed to create file '{dest}'. The path exists and is a directory.");
+                _graphServiceClient.Drive.Items[item.Id].Request().DeleteAsync().RunSynchronously();
+            }
+
+            // Create the file
+            // var folder = LexicalPath.GetDirectoryName(dest);
+            // item = _graphServiceClient.Drive.Root.ItemWithPath(folder).Children.Request().AddAsync(new DriveItem { File = new Microsoft.Graph.File(), Name = fileName }).Result;
+
+            using (var stream = System.IO.File.OpenRead(src))
+            {
+                // var parts = dest.Split('/');
+                // dest = "/" + string.Join("/", parts.Select(p => Uri.EscapeUriString($"\"{p}\"")).ToList());
+                item = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").Content.Request().PutAsync<DriveItem>(stream).Result;
+                var us = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
+                var url = us.UploadUrl;
+            }
         }
 
         public IEnumerable<ItemInfo> ListDirectory(string path)
@@ -103,7 +150,15 @@ namespace CloudSync.Core
 
         public ItemInfo GetItemInfo(string path)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var item = _graphServiceClient.Drive.Root.ItemWithPath(path).Request().GetAsync().Result;
+                return new ItemInfo { Name = item.Name, Size = item.Size, IsDir = item.Folder != null, Id = item.Id, LastWriteTime = item.LastModifiedDateTime.Value.DateTime };
+            }
+            catch(Exception)
+            {
+                return null;
+            }
         }
 
         public void Download(string src, string dest)
@@ -111,11 +166,16 @@ namespace CloudSync.Core
             throw new NotImplementedException();
         }
 
-        private class AuthenticationProvider : IAuthenticationProvider
+        private DriveItem GetItem(string path)
         {
-            public Task AuthenticateRequestAsync(HttpRequestMessage request)
+            try
             {
-                throw new NotImplementedException();
+                var item = _graphServiceClient.Drive.Root.ItemWithPath(path).Request().GetAsync().Result;
+                return item;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -145,9 +205,25 @@ namespace CloudSync.Core
 
         private async Task<string> GetUserTokenAsync()
         {
-            if(_auth == null || _auth.User == null || _auth.ExpiresOn <= DateTimeOffset.UtcNow.AddMinutes(5))
+            bool retry = true;
+            if(_auth != null && _auth.User != null)
             {
-                _auth = await _clientApp.AcquireTokenAsync(_scopes);
+                try
+                {
+                    _auth = await _clientApp.AcquireTokenSilentAsync(_scopes, _auth.User);
+                    retry = false;
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            if(retry)
+            {
+                if (_auth == null || _auth.User == null || _auth.ExpiresOn <= DateTimeOffset.UtcNow.AddMinutes(5))
+                {
+                    _auth = await _clientApp.AcquireTokenAsync(_scopes);
+                }
             }
 
             return _auth.AccessToken;

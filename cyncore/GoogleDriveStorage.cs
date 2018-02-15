@@ -18,9 +18,13 @@ namespace CloudSync.Core
         private readonly string _rootPath;
         private readonly string _store;
 
+        private DriveService service;
+        private Dictionary<string, string> folderId;
+
         public void CleanLocalFile(string path)
         {
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+                File.Delete(path);
         }
 
         public void CreateDirectory(string path)
@@ -260,10 +264,6 @@ namespace CloudSync.Core
                 ["Store"] = _store
             };
         }
-
-        private DriveService service;
-
-        private Dictionary<string, string> folderId;
 
         /// <summary>
         /// 
