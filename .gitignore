@@ -33,9 +33,15 @@
 
 packages/
 .vs/
+copytree/bin/
+copytree/obj/
+copytree/x64/
 cync/bin/
 cync/obj/
 cync/x64/
+cync-windows/bin/
+cync-windows/obj/
+cync-windows/x64/
 cyncore/bin/
 cyncore/obj/
 cyncore/x64/
