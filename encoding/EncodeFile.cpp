@@ -1,3 +1,4 @@
+#include <codecvt>
 #include <cstdint>
 #include <fstream>
 
@@ -67,6 +68,28 @@ static sotcore::Cipher CipherFromString(const std::string & str)
     }
 
     return sotcore::Cipher::UNDEFINED;
+}
+
+static void OpenInputFileStream(const std::string & path, ios_base::openmode mode, ifstream & result)
+{
+#ifdef _MSC_VER
+	wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
+	auto u16path = convert.from_bytes(path);
+	result.open((wchar_t *)&u16path[0], mode);
+#else // _MSC_VER
+	result.open(path, mode);
+#endif // _MSC_VER
+}
+
+static void OpenOutputFileStream(const std::string & path, ios_base::openmode mode, ofstream & result)
+{
+#ifdef _MSC_VER
+	wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
+	auto u16path = convert.from_bytes(path);
+	result.open((wchar_t *)&u16path[0], mode);
+#else // _MSC_VER
+	result.open(path, mode);
+#endif // _MSC_VER
 }
 
 extern "C"
@@ -192,7 +215,9 @@ extern "C"
         HashFilter hf(sha256, new ArraySink((byte *)hash, hashLen));
         ChannelSwitch * cs = new ChannelSwitch(compression);
         cs->AddDefaultRoute(hf);
-        FileSource ss(cfg.src().c_str(), true, cs);
+		ifstream ifs;
+		OpenInputFileStream(cfg.src().c_str(), ios::in | ios::binary, ifs);
+        FileSource ss(ifs, true, cs);
     }
 
     __declspec(dllexport) void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
@@ -204,7 +229,8 @@ extern "C"
         cfg.ParseFromArray(buf, bufLen);
 
         // The input stream
-        ifstream ifs(cfg.src().c_str(), ios::binary | ios::in);
+        ifstream ifs;
+		OpenInputFileStream(cfg.src().c_str(), ios::binary | ios::in, ifs);
 
         // Deserialize the file header structure
         uint32_t size;
@@ -215,7 +241,8 @@ extern "C"
         sotcore::FileHeader fileHeader;
         fileHeader.ParseFromString(bb);
 
-        ofstream ofs(cfg.dest().c_str(), ios::binary | ios::out | ios::trunc);
+		ofstream ofs;
+		OpenOutputFileStream(cfg.dest().c_str(), ios::binary | ios::out | ios::trunc, ofs);
 
         FileSink fileSink(ofs);
         ArraySink shaSink((byte *)hash, hashLen);

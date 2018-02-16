@@ -617,7 +617,7 @@ namespace CloudSync.Core
                     {
                         string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                         queue.Enqueue(Tuple.Create(src, fullDestPath));
-                        logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
+                        logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
                     }
                     else
                     {
@@ -629,7 +629,7 @@ namespace CloudSync.Core
                 {
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
+                    logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
 
                 // Process the queue
@@ -661,14 +661,14 @@ namespace CloudSync.Core
                             // Enque the directory for later processing
                             var destFullPath = LexicalPath.Combine(tt.Item2, Path.GetFileName(ee));
                             queue.Enqueue(Tuple.Create(ee, destFullPath));
-                            logger.Debug($"Queueing directory {ee} [target: {destFullPath}]");
+                            logger.Debug($"Queueing directory '{ee}' [target: '{destFullPath}']");
                         }
                         else
                         {
                             // A file - copy it
                             var added = curDestDir.PushFile(ee, Path.GetFileName(ee), false);
-                            if (added) logger.Debug($"Added {ee} as {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}");
-                            else logger.Debug($"Skipped {ee}. The repository file {LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))} is newer or the same.");
+                            if (added) logger.Debug($"Added '{ee}' as '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}'");
+                            else logger.Debug($"Skipped '{ee}'. The repository file '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}' is newer or the same.");
                         }
                     }
                 }
