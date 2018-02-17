@@ -15,7 +15,7 @@ namespace CloudSync.Core
         {
         }
 
-        public void List(ref Context context, string path, Action<string> lineAction = null)
+        public void List(ref Context context, string path, OutputConfig config)
         {
             path = LexicalPath.Clean(path);
             if(path != "/")
@@ -25,7 +25,7 @@ namespace CloudSync.Core
                     throw new Exception($"The 'list' command is only supported for folders.");
             }
 
-            new ConsoleListOutputter(lineAction).Output(context.Storage.ListDirectory(path));
+            new ConsoleListOutputter(config).Output(context.Storage.ListDirectory(path));
         }
 
         public void Push(ref Context context, string src, string dest)

@@ -675,7 +675,7 @@ namespace CloudSync.Core
             }
         }
 
-        public void List(ref Context context, string path, Action<string> lineAction = null)
+        public void List(ref Context context, string path, OutputConfig config)
         {
             var nameCol = new List<string>();
             int nameColMax = 0;

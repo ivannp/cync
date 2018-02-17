@@ -125,11 +125,11 @@ namespace CloudSync.Tool
             [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
-            [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize to Google Drive path. No encryption, no compression.")]
-            public bool UnsecuredGoogleDrive { get; set; }
+            [Option("plain-google-drive", Default = false, HelpText = "Synchronize to Google Drive path. No encryption, no compression.")]
+            public bool PlainGoogleDrive { get; set; }
 
-            [Option("unsecured-onedrive", Default = false, HelpText = "Synchronize to a OneDrive path. No encryption, no compression.")]
-            public bool UnsecuredOneDrive { get; set; }
+            [Option("plain-onedrive", Default = false, HelpText = "Synchronize to a OneDrive path. No encryption, no compression.")]
+            public bool PlainOneDrive { get; set; }
 
             [Option("sftp", Default = null, HelpText = "Synchronize to a SFTP repository.")]
             public string Sftp { get; set; }
@@ -159,8 +159,8 @@ namespace CloudSync.Tool
             [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
-            [Option("unsecured-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
-            public bool UnsecuredGoogleDrive { get; set; }
+            [Option("plain-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
+            public bool PlainGoogleDrive { get; set; }
 
             [Option("sftp", Default = null, HelpText = "Synchronize an SFTP path to a local path.")]
             public string Sftp { get; set; }
@@ -187,17 +187,20 @@ namespace CloudSync.Tool
             [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
-            [Option("unsecured-google-drive", Default = false, HelpText = "List a plain (no encryption, no compression) Google Drive folder.")]
-            public bool UnsecuredGoogleDrive { get; set; }
+            [Option("plain-google-drive", Default = false, HelpText = "List a plain (no encryption, no compression) Google Drive folder.")]
+            public bool PlainGoogleDrive { get; set; }
 
-            [Option("unsecured-onedrive", Default = false, HelpText = "List a plain (no encryption, no compression) OneDrive folder.")]
-            public bool UnsecuredOneDrive { get; set; }
+            [Option("plain-onedrive", Default = false, HelpText = "List a plain (no encryption, no compression) OneDrive folder.")]
+            public bool PlainOneDrive { get; set; }
 
             [Option("sftp", Default = null, HelpText = "List a path in a SFTP repository.")]
             public string Sftp { get; set; }
 
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
+
+            [Option("long", Default = null, HelpText = "Use a long listing format.")]
+            public bool Long { get; set; }
 
             [Value(0, Max = 1, Required = false)]
             public IEnumerable<string> Items { get; set; }
@@ -302,7 +305,7 @@ namespace CloudSync.Tool
 
                 tree = new ObjectTree();
             }
-            else if (oo.UnsecuredGoogleDrive)
+            else if (oo.PlainGoogleDrive)
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
@@ -312,7 +315,7 @@ namespace CloudSync.Tool
 
                 tree = new FileSystemTree();
             }
-            else if (oo.UnsecuredOneDrive)
+            else if (oo.PlainOneDrive)
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new OneDriveStorage("/", tokenPath);
@@ -405,7 +408,7 @@ namespace CloudSync.Tool
 
                 tree = new ObjectTree();
             }
-            else if (oo.UnsecuredGoogleDrive)
+            else if (oo.PlainGoogleDrive)
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
@@ -473,7 +476,7 @@ namespace CloudSync.Tool
 
                 tree = new ObjectTree();
             }
-            else if (oo.UnsecuredGoogleDrive)
+            else if (oo.PlainGoogleDrive)
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
@@ -483,7 +486,7 @@ namespace CloudSync.Tool
 
                 tree = new FileSystemTree();
             }
-            else if (oo.UnsecuredOneDrive)
+            else if (oo.PlainOneDrive)
             {
                 string tokenPath = oo.TokenPath ?? DotPath;
                 context.Storage = new OneDriveStorage("/", tokenPath);
@@ -511,9 +514,22 @@ namespace CloudSync.Tool
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
 
-            void lineAction(string s) => ColorConsole.WriteLine(s);
+            void itemAction(string str, ItemInfo itemInfo)
+            {
+                if (itemInfo != null && itemInfo.IsDir)
+                    ColorConsole.Write(str.DarkGreen());
+                else
+                    ColorConsole.Write(str);
+            };
 
-            tree.List(ref context, path, lineAction);
+            var outputConfig = new OutputConfig
+            {
+                ItemAction = oo.Long ? (s, i) => ColorConsole.Write(s) : (Action<string, ItemInfo>)itemAction,
+                EndOfLineAction = () => ColorConsole.WriteLine(),
+                Type = oo.Long ? OutputConfig.OutputType.Long : OutputConfig.OutputType.Default
+            };
+
+            tree.List(ref context, path, outputConfig);
 
             // Save the current context
             SaveContext(jcfg, DotPath);
