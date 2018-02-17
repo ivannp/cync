@@ -88,18 +88,24 @@ namespace CloudSync.Core
             var id = GetId(path);
 
             var req = service.Files.List();
-            req.Fields = "files(id, name, mimeType, size, modifiedTime)";
+            req.Fields = "files(id, name, mimeType, size, modifiedTime), nextPageToken";
             req.Spaces = "drive";
             req.Q = $"'{id}' in parents and trashed = false";
-            // TODO(ivannp): Support folders with more than 1000 entries
             req.PageSize = 1000;
 
-            var files = req.Execute().Files;
-            if(files == null || files.Count == 0)
-                return res;
+            string nextPageToken = null;
 
-            foreach(var file in files)
-                res.Add(new ItemInfo { Name = file.Name, Size = file.Size, IsDir = file.MimeType == "application/vnd.google-apps.folder", Id = file.Id, LastWriteTime = file.ModifiedTime });
+            do
+            {
+                req.PageToken = nextPageToken;
+                var result = req.Execute();
+                var files = result.Files;
+
+                foreach (var file in files)
+                    res.Add(new ItemInfo { Name = file.Name, Size = file.Size, IsDir = file.MimeType == "application/vnd.google-apps.folder", Id = file.Id, LastWriteTime = file.ModifiedTime });
+
+                nextPageToken = result.NextPageToken;
+            } while (nextPageToken != null);
 
             return res;
         }

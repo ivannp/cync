@@ -13,7 +13,7 @@ namespace CloudSync.Tool
     {
         private static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        [Verb("init", HelpText = "Initializes a sot repository.")]
+        [Verb("init", HelpText = "Initializes a cync repository.")]
         class InitOptions
         {
             [Option("key-file", Default = null, HelpText = "The user provided key file.")]
@@ -175,7 +175,7 @@ namespace CloudSync.Tool
             public IEnumerable<string> Items { get; set; }
         }
 
-        [Verb("list", HelpText = "Lists the content of a sot repository path.")]
+        [Verb("list", HelpText = "Lists the content of a repository path.")]
         class ListOptions
         {
             [Option('l', "local", Default = null, HelpText = "The local repository to use.")]
@@ -208,7 +208,7 @@ namespace CloudSync.Tool
             if (io.Verbose)
                 LogHelper.MakeConsoleVerbose();
 
-            string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".sot");
+            string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync");
 
             IObjectTree tree = null;
 
@@ -562,7 +562,7 @@ namespace CloudSync.Tool
                 Console.WriteLine(Convert.ToBase64String(key));
         }
 
-        public static string DotPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".sot"); } }
+        public static string DotPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync"); } }
 
         static IStorage RepoFromJson(JObject json)
         {
@@ -638,13 +638,13 @@ namespace CloudSync.Tool
                     .WithParsed<PushOptions>(opts => CmdPush(opts))
                     .WithParsed<PullOptions>(opts => CmdPull(opts))
                     .WithParsed<ListOptions>(opts => CmdList(opts))
-                    .WithNotParsed(errs => { foreach (var e in errs) _logger.Fatal($"sot encountered a fatal error: {e.ToString()}"); });
+                    .WithNotParsed(errs => { foreach (var e in errs) _logger.Fatal($"cync encountered a fatal error: {e.ToString()}"); });
             }
             catch (Exception ee)
             {
-                _logger.Fatal(ee, $"sot encountered a fatal error: {ee.ToString()}");
+                _logger.Fatal(ee, $"cync encountered a fatal error: {ee.ToString()}");
                 if(ee.InnerException != null)
-                    _logger.Fatal(ee, $"sot encountered a fatal error: {ee.Message}");
+                    _logger.Fatal(ee, $"cync encountered a fatal error: {ee.Message}");
             }
         }
     }
