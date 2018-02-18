@@ -124,7 +124,7 @@ namespace CloudSync.Core
             req.PageSize = 10; // We expect 0 or 1 elements
             req.Fields = "files(id, name, mimeType, size, modifiedTime)";
             req.Spaces = "drive";
-            req.Q = $"name = '{fileName}' and '{id}' in parents and trashed = false";
+            req.Q = $"name = '{EscapeName(fileName)}' and '{id}' in parents and trashed = false";
 
             var files = req.Execute().Files;
             if (files.Count > 1)
@@ -184,7 +184,7 @@ namespace CloudSync.Core
             req.PageSize = 10;  // We expect a single result
             req.Fields = "files(id, name, mimeType)";
             req.Spaces = "drive";
-            req.Q = $"'{id}' in parents and name = '{fileName}' and trashed = false";
+            req.Q = $"'{id}' in parents and name = '{EscapeName(fileName)}' and trashed = false";
 
             var files = req.Execute().Files;
             if (files?.Count > 0)
@@ -240,7 +240,7 @@ namespace CloudSync.Core
                 req.PageSize = 10;  // We expect a single result
                 req.Fields = "files(id, name)";
                 req.Spaces = "drive";
-                req.Q = $"'{parentId}' in parents and name = '{folder}' and trashed = false";
+                req.Q = $"'{parentId}' in parents and name = '{EscapeName(folder)}' and trashed = false";
 
                 var files = req.Execute().Files;
 
@@ -304,6 +304,11 @@ namespace CloudSync.Core
                 HttpClientInitializer = credential,
                 ApplicationName = "sot",
             });
+        }
+
+        private string EscapeName(string name)
+        {
+            return name.Replace("'", "\\'");
         }
     }
 }
