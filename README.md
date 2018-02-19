@@ -35,7 +35,7 @@ Now I can list the files in the repository:
 
     cync list /
     
-Can a use a GUI instead? NO! Here is what you see in the GUI:
+Can a use a GUI instead? NO! Here is what you see in the browser when you open one of **/onefolder** sub folders:
 
 ![Google Drive file list](https://github.com/ivannp/cync/blob/master/github-images/google-drive-files.png)
 
