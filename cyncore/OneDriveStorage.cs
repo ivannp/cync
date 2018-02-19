@@ -111,17 +111,13 @@ namespace CloudSync.Core
                 _graphServiceClient.Drive.Items[item.Id].Request().DeleteAsync().RunSynchronously();
             }
 
-            // Create the file
-            // var folder = LexicalPath.GetDirectoryName(dest);
-            // item = _graphServiceClient.Drive.Root.ItemWithPath(folder).Children.Request().AddAsync(new DriveItem { File = new Microsoft.Graph.File(), Name = fileName }).Result;
-
             using (var stream = System.IO.File.OpenRead(src))
             {
-                // var parts = dest.Split('/');
-                // dest = "/" + string.Join("/", parts.Select(p => Uri.EscapeUriString($"\"{p}\"")).ToList());
-                item = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").Content.Request().PutAsync<DriveItem>(stream).Result;
-                var us = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
-                var url = us.UploadUrl;
+                // TODO(ivannp) A progress indicator can be added according to:
+                //      https://github.com/OneDrive/onedrive-sdk-csharp/blob/master/docs/chunked-uploads.md, 
+                var session = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
+                var provider = new ChunkedUploadProvider(session, _graphServiceClient, stream);
+                item = provider.UploadAsync().Result;
             }
         }
 
