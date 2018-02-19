@@ -184,7 +184,7 @@ namespace CloudSync.Tool
             [Option("key-file", Default = null, HelpText = "The user provided key file.")]
             public string KeyFile { get; set; }
 
-            [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
+            [Option('g', "google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
             [Option("plain-google-drive", Default = false, HelpText = "List a plain (no encryption, no compression) Google Drive folder.")]
