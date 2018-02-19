@@ -85,13 +85,16 @@ namespace CloudSync.Core
                 itemList.Add(item);
             }
 
+            if (nameColumn.Count == 0)
+                return;
+
             var indexes = Enumerable.Range(0, nameColumn.Count).ToList();
             var comparer = new IndexComparer(itemList, foldersFirst: false);
             indexes.Sort(comparer);
 
             // Figure out how many columns can fit the output
             var maxWidth = Console.WindowWidth;
-            var numColumns = 15;
+            var numColumns = Math.Min(15, nameColumn.Count);
 
             var columnWidths = new List<int>();
 
@@ -103,7 +106,7 @@ namespace CloudSync.Core
 
                 // Compute the window with necessary to display the output in numColumns columns
                 var numRows = (nameColumn.Count + numColumns - 1) / numColumns;
-                var numFullColumns = (nameColumn.Count + numColumns - 1) % numColumns;
+                var numFullColumns = nameColumn.Count - (numRows - 1) * numColumns; // The number of items in the last row, in other words
                 var itemId = 0;
                 for (var i = 0; i < numColumns; ++i)
                 {
