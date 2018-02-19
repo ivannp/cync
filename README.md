@@ -53,4 +53,4 @@ In a year from now, when it's time to file taxes for 2019, here is the process t
     # Push the changes to the cloud - uploads only the updated content
     cync push /taxes
 
-More information is available in the porject Wiki.
+More information is available in the [Wiki](https://github.com/ivannp/cync/wiki).
