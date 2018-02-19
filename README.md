@@ -10,6 +10,9 @@ Likely to use various storage providers (Google Drive, OneDrive, sftp, local, et
 
 Using different operating systems and preferring tools which work on all? Then cync provides an alternative solution.
 
+# Status
+cync is in early alpha stages. Currently it's mostly useful to potential contributors of the project.
+
 # Quick Introduction
 cync has different modes, but let's start with the simplest example.
 
@@ -34,3 +37,20 @@ Now I can list the files in the repository:
     
 Can a use a GUI instead? NO! Here is what you see in the GUI:
 
+![Google Drive file list](https://github.com/ivannp/cync/blob/master/github-images/google-drive-files.png)
+
+Remember, cync is encrypting by default. Not only the file content, but also the file system structure. Impossible to tell what's stored without using cync.
+
+Once the folder is stored in the cloud, I can remove it from local drive.
+
+In a year from now, when it's time to file taxes for 2019, here is the process to follow:
+
+    # Download the remote /taxes folder to the current folder
+    cync pull /taxes
+    
+    # Work on the taxes for 2019, adding files and folders
+    
+    # Push the changes to the cloud - uploads only the updated content
+    cync push /taxes
+
+More information is available in the porject Wiki.
