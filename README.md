@@ -14,7 +14,7 @@ Using different operating systems and preferring tools which work on all? Then c
 cync is in early alpha stages. Currently it's mostly useful to potential contributors of the project.
 
 # Quick Introduction
-cync has different modes, but let's start with the simplest example.
+cync has different operational modes, but let's start with the default example. Compression and security are enabled.
 
 ## Create the Repository
 By default cync adds compression and better security for data stored in the cloud. To enable that, the first step is to create the repository:
