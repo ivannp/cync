@@ -15,6 +15,9 @@
 #include "cryptopp/zdeflate.h"
 #include "cryptopp/zinflate.h"
 
+#define DLL_API_EXPORTS
+#include "DllApi.h"
+
 #include "EncodingConfig.pb.h"
 #include "FileHeader.pb.h"
 
@@ -94,7 +97,7 @@ static void OpenOutputFileStream(const std::string & path, ios_base::openmode mo
 
 extern "C"
 {
-    __declspec(dllexport) void EncodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
+    DLL_API void EncodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
     {
         DestructorList encryptionDestructors;
 
@@ -220,7 +223,7 @@ extern "C"
         FileSource ss(ifs, true, cs);
     }
 
-    __declspec(dllexport) void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
+    DLL_API void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
     {
         DestructorList encryptionDestructors;
 
