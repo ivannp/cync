@@ -20,7 +20,7 @@ namespace CloudSync.Core
 
         public WindowsDll(string path)
         {
-            var _handle = LoadLibrary(path);
+            _handle = LoadLibrary(path);
             if (_handle == IntPtr.Zero)
                 throw new FileNotFoundException($"Failed to load {path}");
         }

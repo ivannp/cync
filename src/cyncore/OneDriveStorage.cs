@@ -5,7 +5,6 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
@@ -24,8 +23,6 @@ namespace CloudSync.Core
         private GraphServiceClient _graphServiceClient;
         private PublicClientApplication _clientApp = new PublicClientApplication(_clientId);
         private AuthenticationResult _auth;
-
-        private Dictionary<string, string> _folderIdCache;
 
         public OneDriveStorage(string rootPath, string store)
         {
