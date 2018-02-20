@@ -125,12 +125,12 @@ namespace CloudSync.Core
         {
             path = LexicalPath.Clean(path);
 
-            DriveItem folder;
-
             var expandValue = "children";
 
-            folder = _graphServiceClient.Drive.Root
-                .ItemWithPath(path)
+            var folder = _graphServiceClient.Drive.Root;
+            if (path != "/")
+                folder = folder.ItemWithPath(path);
+            var driveItem = folder
                 .Request()
                 .Expand(expandValue)
                 .GetAsync()
@@ -138,7 +138,7 @@ namespace CloudSync.Core
 
             var res = new List<ItemInfo>();
 
-            foreach(var item in folder.Children)
+            foreach(var item in driveItem.Children)
                 res.Add(new ItemInfo { Name = item.Name, Size = item.Size, IsDir = item.Folder != null, Id = item.Id, LastWriteTime = item.LastModifiedDateTime.Value.DateTime });
 
             return res;

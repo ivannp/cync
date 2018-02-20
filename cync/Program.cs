@@ -660,7 +660,7 @@ namespace CloudSync.Tool
             {
                 _logger.Fatal(ee, $"cync encountered a fatal error: {ee.ToString()}");
                 if(ee.InnerException != null)
-                    _logger.Fatal(ee, $"cync encountered a fatal error: {ee.Message}");
+                    _logger.Fatal(ee, $"cync encountered a fatal error: {ee.ToString()}");
             }
         }
     }

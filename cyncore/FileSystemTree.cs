@@ -10,6 +10,7 @@ namespace CloudSync.Core
     public class FileSystemTree : IObjectTree
     {
         private static Logger _logger = LogManager.GetCurrentClassLogger();
+        private static readonly HashSet<char> _invalidChars = new HashSet<char>(Path.GetInvalidFileNameChars().Union(Path.GetInvalidPathChars()).ToArray());
 
         public void CreateRoot(ref Context context)
         {
@@ -134,9 +135,11 @@ namespace CloudSync.Core
 
             Queue<Tuple<string, string>> queue = new Queue<Tuple<string, string>>();
 
-            var itemInfo = context.Storage.GetItemInfo(src);
-
-            if (itemInfo.IsDir)
+            if(src == "/")
+            {
+                queue.Enqueue(Tuple.Create(src, dest));
+            }
+            else if(context.Storage.GetItemInfo(src).IsDir)
             {
                 // src is a folder, let's define the desired behaviour, following
                 // the design of rsync:
@@ -153,7 +156,7 @@ namespace CloudSync.Core
                 var destPath = dest;
                 if (fileName.Length > 0 && !srcEndsWithSeparator)
                 {
-                    destPath = Path.Combine(destPath, fileName);
+                    destPath = Path.Combine(destPath, ValidLocalPath(fileName));
                     Directory.CreateDirectory(destPath);
                 }
 
@@ -174,7 +177,7 @@ namespace CloudSync.Core
                 {
                     if (item.IsDir)
                     {
-                        var destDirPath = Path.Combine(tt.Item2, item.Name);
+                        var destDirPath = Path.Combine(tt.Item2, ValidLocalPath(item.Name));
                         var srcDirPath = LexicalPath.Combine(tt.Item1, item.Name);
                         Directory.CreateDirectory(destDirPath);
                         queue.Enqueue(Tuple.Create(srcDirPath, destDirPath));
@@ -183,11 +186,12 @@ namespace CloudSync.Core
                     else
                     {
                         var srcFullPath = LexicalPath.Combine(tt.Item1, item.Name);
-                        var destFullPath = Path.Combine(tt.Item2, item.Name);
+                        var destFullPath = Path.Combine(tt.Item2, ValidLocalPath(item.Name));
                         var fileInfo = new FileInfo(destFullPath);
                         var download = !fileInfo.Exists || fileInfo.Length != item.Size || item.LastWriteTime == null || DateTime.Compare(fileInfo.LastWriteTimeUtc, item.LastWriteTime.Value) < 0;
                         if (download)
                         {
+                            _logger.Debug($"Copying {srcFullPath} to {destFullPath}");
                             context.Storage.Download(srcFullPath, destFullPath);
                             File.SetLastWriteTime(destFullPath, item.LastWriteTime.Value);
                             _logger.Debug($"Copied {srcFullPath} to {destFullPath}");
@@ -199,6 +203,14 @@ namespace CloudSync.Core
                     }
                 }
             }
+        }
+
+        private string ValidLocalPath(string path)
+        {
+            var sb = new StringBuilder(path.Length);
+            for(var i = 0; i < path.Length; ++i)
+                sb.Append(_invalidChars.Contains(path[i]) ? '_' : path[i]);
+            return sb.ToString();
         }
     }
 }
