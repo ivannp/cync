@@ -5,6 +5,7 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
@@ -120,6 +121,8 @@ namespace CloudSync.Core
 
             var fileInfo = new FileInfo(src);
             var fileSize = fileInfo.Length;
+
+            dest = (dest[0] == '/' ? "/" : "") + string.Join("/", dest.Split('/').Select(p => Uri.EscapeDataString(p)).ToList());
 
             using (var stream = System.IO.File.OpenRead(src))
             {
