@@ -14,15 +14,25 @@ namespace CloudSync.Core
     {
         private static NLog.Logger _logger = LogManager.GetCurrentClassLogger();
 
-        private const string _clientId = "d2356b67-dd6a-4163-9fae-df91859383ab";
+        private const string _cacheFileName = "onedrive.cache";
+
+        private const string _clientId = "fc1e93cb-e530-4afb-b75d-aacbafdc5353";
         private const string _returnUrl = "urn:ietf:wg:oauth:2.0:oob";
         private static string[] _scopes = { "Files.ReadWrite.All" };
 
         private readonly string _rootPath;
         private readonly string _store;
+        private TokenCache _tokenCache;
         private GraphServiceClient _graphServiceClient;
-        private PublicClientApplication _clientApp = new PublicClientApplication(_clientId);
+        private PublicClientApplication _clientApp;
         private AuthenticationResult _auth;
+
+        private string TokenCachePath {
+            get
+            {
+                return _store == null ? null : Path.Combine(_store, _cacheFileName);
+            }
+        }
 
         public OneDriveStorage(string rootPath, string store)
         {
@@ -105,16 +115,26 @@ namespace CloudSync.Core
             {
                 if(item.Folder != null)
                     throw new PathException($"Failed to create file '{dest}'. The path exists and is a directory.");
-                _graphServiceClient.Drive.Items[item.Id].Request().DeleteAsync().RunSynchronously();
+                _graphServiceClient.Drive.Items[item.Id].Request().DeleteAsync().Wait();
             }
+
+            var fileInfo = new FileInfo(src);
+            var fileSize = fileInfo.Length;
 
             using (var stream = System.IO.File.OpenRead(src))
             {
-                // TODO(ivannp) A progress indicator can be added according to:
-                //      https://github.com/OneDrive/onedrive-sdk-csharp/blob/master/docs/chunked-uploads.md, 
-                var session = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
-                var provider = new ChunkedUploadProvider(session, _graphServiceClient, stream);
-                item = provider.UploadAsync().Result;
+                if(fileSize > 1024*1024)
+                {
+                    // TODO(ivannp) A progress indicator can be added according to:
+                    //      https://github.com/OneDrive/onedrive-sdk-csharp/blob/master/docs/chunked-uploads.md, 
+                    var session = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
+                    var provider = new ChunkedUploadProvider(session, _graphServiceClient, stream);
+                    item = provider.UploadAsync().Result;
+                }
+                else
+                {
+                    _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").Content.Request().PutAsync<DriveItem>(stream).Wait();
+                }
             }
         }
 
@@ -172,10 +192,42 @@ namespace CloudSync.Core
             }
         }
 
+        private void TokenCacheAfterAccess(TokenCacheNotificationArgs args)
+        {
+            if (TokenCachePath == null)
+                return;
+
+            if (!args.TokenCache.HasStateChanged)
+                return;
+
+            System.IO.File.WriteAllBytes(TokenCachePath, args.TokenCache.Serialize());
+            args.TokenCache.HasStateChanged = false;
+        }
+
+        private void TokenCacheBeforeAccess(TokenCacheNotificationArgs args)
+        {
+            if (TokenCachePath == null)
+                return;
+
+            if (!System.IO.File.Exists(TokenCachePath))
+                return;
+
+            args.TokenCache.Deserialize(System.IO.File.ReadAllBytes(TokenCachePath));
+        }
+
         private void GetAuthenticatedClient()
         {
             if (_graphServiceClient == null)
             {
+                //_tokenCache = new TokenCache();
+                //if (System.IO.File.Exists(TokenCachePath))
+                //    _tokenCache.Deserialize(System.IO.File.ReadAllBytes(TokenCachePath));
+                //_tokenCache.SetAfterAccess(TokenCacheAfterAccess);
+                //_tokenCache.SetBeforeAccess(TokenCacheBeforeAccess);
+
+                //_clientApp = new PublicClientApplication(_clientId, "https://login.microsoftonline.com/common", _tokenCache);
+                _clientApp = new PublicClientApplication(_clientId);
+
                 // Create Microsoft Graph client.
                 try
                 {
@@ -220,6 +272,22 @@ namespace CloudSync.Core
             }
 
             return _auth.AccessToken;
+        }
+
+        private void SaveToken()
+        {
+            var jo = new JObject
+            {
+                ["AccessToken"] = _auth.AccessToken,
+                ["ExpiresOn"] = _auth.ExpiresOn.ToUnixTimeMilliseconds(),
+                ["UserIdentifier"] = _auth.User.Identifier,
+                ["UserName"] = _auth.User.Name
+            };
+            System.IO.File.WriteAllText(_store, jo.ToString());
+        }
+
+        private void LoadToken()
+        {
         }
     }
 }

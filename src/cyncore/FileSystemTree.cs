@@ -68,13 +68,13 @@ namespace CloudSync.Core
 
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, Path.GetFileName(src));
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    _logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
+                    _logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
                 else
                 {
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, Path.GetFileName(src));
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    _logger.Debug($"Queueing directory {src} [target: {fullDestPath}]");
+                    _logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
 
                 // Process the queue
@@ -100,7 +100,7 @@ namespace CloudSync.Core
                             // Enque the directory for later processing
                             var destFullPath = LexicalPath.Combine(tt.Item2, Path.GetFileName(ee));
                             queue.Enqueue(Tuple.Create(ee, destFullPath));
-                            _logger.Debug($"Queueing directory {ee} [target: {destFullPath}]");
+                            _logger.Debug($"Queueing directory {ee} [target: '{destFullPath}']");
                         }
                         else
                         {
@@ -110,12 +110,13 @@ namespace CloudSync.Core
                             var upload = destItem == null || destItem.Size == null || fi.Length != destItem.Size || destItem.LastWriteTime == null || DateTime.Compare(destItem.LastWriteTime.Value, fi.LastWriteTime) < 0;
                             if(upload)
                             {
+                                _logger.Debug($"Adding '{ee}' as '{fullDestPath}'");
                                 context.Storage.Upload(ee, fullDestPath, finalizeLocal: false);
-                                _logger.Debug($"Added {ee} as {fullDestPath}");
+                                _logger.Debug($"Added '{ee}' as '{fullDestPath}'");
                             }
                             else
                             {
-                                _logger.Debug($"Skipped {ee}. The repository file {fullDestPath} is newer or the same.");
+                                _logger.Debug($"Skipped '{ee}'. The repository file '{fullDestPath}' is newer or the same.");
                             }
                         }
                     }
@@ -181,7 +182,7 @@ namespace CloudSync.Core
                         var srcDirPath = LexicalPath.Combine(tt.Item1, item.Name);
                         Directory.CreateDirectory(destDirPath);
                         queue.Enqueue(Tuple.Create(srcDirPath, destDirPath));
-                        _logger.Debug($"Queueing directory {srcDirPath} [target: {destDirPath}]");
+                        _logger.Debug($"Queueing directory '{srcDirPath}' [target: '{destDirPath}']");
                     }
                     else
                     {
@@ -191,14 +192,14 @@ namespace CloudSync.Core
                         var download = !fileInfo.Exists || fileInfo.Length != item.Size || item.LastWriteTime == null || DateTime.Compare(fileInfo.LastWriteTimeUtc, item.LastWriteTime.Value) < 0;
                         if (download)
                         {
-                            _logger.Debug($"Copying {srcFullPath} to {destFullPath}");
+                            _logger.Debug($"Copying '{srcFullPath}' to '{destFullPath}'");
                             context.Storage.Download(srcFullPath, destFullPath);
                             File.SetLastWriteTime(destFullPath, item.LastWriteTime.Value);
-                            _logger.Debug($"Copied {srcFullPath} to {destFullPath}");
+                            _logger.Debug($"Copied '{srcFullPath}' to '{destFullPath}'");
                         }
                         else
                         {
-                            _logger.Debug($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
+                            _logger.Debug($"Skipped '{srcFullPath}'. The local file ({destFullPath}) is either newer or the same as the repository file.");
                         }
                     }
                 }

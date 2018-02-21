@@ -38,6 +38,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\src\cyncore\secret.json" Link="secret.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\..\src\cyncore\NLog.xsd" Link="NLog.xsd" />
   </ItemGroup>
 
