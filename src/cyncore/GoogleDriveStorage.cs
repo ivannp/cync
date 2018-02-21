@@ -172,6 +172,26 @@ namespace CloudSync.Core
             folderId.Remove(path);
         }
 
+        public void Move(string src, string dest)
+        {
+            src = LexicalPath.Combine(_rootPath, src);
+            string srcId = GetId(src);
+
+            // Retrieve the existing parents to remove
+            var getRequest = service.Files.Get(srcId);
+            getRequest.Fields = "parents";
+            var file = getRequest.Execute();
+            var previousParents = String.Join(",", file.Parents);
+
+            // Move the file to the new folder
+            string destId = GetId(src);
+            var updateRequest = service.Files.Update(new Google.Apis.Drive.v3.Data.File(), destId);
+            updateRequest.Fields = "id, parents";
+            updateRequest.AddParents = destId;
+            updateRequest.RemoveParents = previousParents;
+            file = updateRequest.Execute();
+        }
+
         public void Upload(string src, string dest, bool finalizeLocal = true)
         {
             dest = LexicalPath.Combine(_rootPath, dest);

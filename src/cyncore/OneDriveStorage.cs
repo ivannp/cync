@@ -107,6 +107,12 @@ namespace CloudSync.Core
             _graphServiceClient.Drive.Root.ItemWithPath(path).Request().DeleteAsync().Wait();
         }
 
+        public void Move(string src, string dest)
+        {
+            var destItem = new DriveItem { ParentReference = new ItemReference { Id = GetItem(dest).Id } };
+            _graphServiceClient.Drive.Root.ItemWithPath(src).Request().UpdateAsync(destItem).Wait();
+        }
+
         public void Upload(string src, string dest, bool finalizeLocal = true)
         {
             dest = LexicalPath.Combine(_rootPath, dest);

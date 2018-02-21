@@ -216,6 +216,16 @@ namespace CloudSync.Core
             { }
         }
 
+        public void Move(ref Context context, string src, string dest)
+        {
+            try
+            {
+                context.Storage.Move(src, dest);
+            }
+            catch (Exception)
+            { }
+        }
+
         private string ValidLocalPath(string path)
         {
             var sb = new StringBuilder(path.Length);

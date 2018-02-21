@@ -118,6 +118,11 @@ namespace CloudSync.Core
             return res;
         }
 
+        public void Move(string src, string dest)
+        {
+            throw new NotSupportedException($"The 'move' command is not supported.");
+        }
+
         public void RemoveFile(string path)
         {
             if (!string.IsNullOrWhiteSpace(_rootPath))

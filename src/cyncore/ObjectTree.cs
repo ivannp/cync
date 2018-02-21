@@ -449,13 +449,24 @@ namespace CloudSync.Core
                 return true;
             }
 
-            public void RemoveEntry(string name)
+            /// <summary>
+            /// Removes and entry from the directory. If removeData is true (default), the
+            /// the data is also removed.
+            /// 
+            /// removeData is set to false by the 'move' command.
+            /// </summary>
+            /// <param name="name"></param>
+            /// <param name="removeData">true to remove the data</param>
+            public void RemoveEntry(string name, bool removeData = true)
             {
                 if (!TryGetEntry(name, out DirEntry de))
                     return;
-                // Delete all versions
-                foreach(var version in de.Versions)
-                    context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                if(removeData)
+                {
+                    // Delete all versions
+                    foreach (var version in de.Versions)
+                        context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                }
                 // Remove the directory entry
                 data.Entries.Remove(name);
                 dirty = true;
@@ -788,12 +799,12 @@ namespace CloudSync.Core
             Dir dir = Dir.Open(ref context, pathDir, false, false);
 
             // Lookup the last path element into the directory
-            var lastDest = Path.GetFileName(path);
-            if (!dir.TryGetEntry(lastDest, out DirEntry de))
+            var fileName = Path.GetFileName(path);
+            if (!dir.TryGetEntry(fileName, out DirEntry de))
                 return;
             if(Dir.IsFile(de))
             {
-                dir.RemoveEntry(lastDest);
+                dir.RemoveEntry(fileName);
             }
             else
             {
@@ -829,6 +840,35 @@ namespace CloudSync.Core
                     logger.Debug($"Removed directory '{top}'");
                 }
             }
+        }
+
+        public void Move(ref Context context, string src, string dest)
+        {
+            // Open the destination except the last path element
+            src = LexicalPath.Clean(src);
+            string srcDirPath = LexicalPath.GetDirectoryName(src);
+            var srcDir = Dir.Open(ref context, srcDirPath, false, false);
+
+            // Lookup the last path element into the directory
+            var srcFileName = Path.GetFileName(srcDirPath);
+            if (!srcDir.TryGetEntry(srcFileName, out DirEntry de))
+                return;
+
+            dest = LexicalPath.Clean(dest);
+            string destDirPath = LexicalPath.GetDirectoryName(dest);
+            var destDir = Dir.Open(ref context, destDirPath, false, false);
+
+            var destFileName = Path.GetFileName(destDirPath);
+            if (destDir.TryGetEntry(srcFileName, out DirEntry destDirEntry))
+            {
+                throw new Exception($"The destination exists.");
+            }
+
+            destDir.AddEntry(destFileName, de);
+            destDir.Write();
+
+            srcDir.RemoveEntry(srcFileName, false);
+            srcDir.Write();
         }
     }
 }

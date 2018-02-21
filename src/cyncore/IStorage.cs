@@ -39,6 +39,8 @@ namespace CloudSync.Core
 
         void RemoveFile(string path);
 
+        void Move(string src, string dest);
+
         JObject ToJson();
 
         IEnumerable<ItemInfo> ListDirectory(string path);

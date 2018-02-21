@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -80,6 +81,16 @@ namespace CloudSync.Core
         public ItemInfo GetItemInfo(string path)
         {
             throw new System.NotImplementedException();
+        }
+
+        public void Move(string src, string dest)
+        {
+            if (Directory.Exists(src))
+                Directory.Move(src, dest);
+            else if (File.Exists(src))
+                File.Move(src, dest);
+            else
+                throw new NotSupportedException($"Can't move '{src}'. Only files and directories are supported.");
         }
     }
 }

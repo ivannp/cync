@@ -9,5 +9,6 @@ namespace CloudSync.Core
         void Push(ref Context context, string src, string dest);
         void List(ref Context context, string path, OutputConfig config);
         void Remove(ref Context context, string path);
+        void Move(ref Context context, string src, string dest);
     }
 }
