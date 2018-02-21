@@ -103,7 +103,8 @@ namespace CloudSync.Core
 
         public void RemoveFile(string path)
         {
-            throw new NotImplementedException();
+            path = EncodePath(LexicalPath.Combine(_rootPath, path));
+            _graphServiceClient.Drive.Root.ItemWithPath(path).Request().DeleteAsync().Wait();
         }
 
         public void Upload(string src, string dest, bool finalizeLocal = true)
@@ -122,7 +123,7 @@ namespace CloudSync.Core
             var fileInfo = new FileInfo(src);
             var fileSize = fileInfo.Length;
 
-            dest = (dest[0] == '/' ? "/" : "") + string.Join("/", dest.Split('/').Select(p => Uri.EscapeDataString(p)).ToList());
+            dest = EncodePath(dest);
 
             using (var stream = System.IO.File.OpenRead(src))
             {
@@ -291,6 +292,11 @@ namespace CloudSync.Core
 
         private void LoadToken()
         {
+        }
+
+        private string EncodePath(string path)
+        {
+            return (path[0] == '/' ? "/" : "") + string.Join("/", path.Split('/').Select(p => Uri.EscapeDataString(p)).ToList());
         }
     }
 }
