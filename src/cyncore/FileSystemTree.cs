@@ -206,6 +206,16 @@ namespace CloudSync.Core
             }
         }
 
+        public void Remove(ref Context context, string path)
+        {
+            try
+            {
+                context.Storage.RemoveFile(path);
+            }
+            catch(Exception)
+            { }
+        }
+
         private string ValidLocalPath(string path)
         {
             var sb = new StringBuilder(path.Length);

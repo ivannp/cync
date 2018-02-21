@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using NLog;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -447,6 +448,31 @@ namespace CloudSync.Core
 
                 return true;
             }
+
+            public void RemoveEntry(string name)
+            {
+                if (!TryGetEntry(name, out DirEntry de))
+                    return;
+                // Delete all versions
+                foreach(var version in de.Versions)
+                    context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                // Remove the directory entry
+                data.Entries.Remove(name);
+                dirty = true;
+                Write();
+            }
+
+            public void RemoveAllEntries()
+            {
+                foreach(var kv in data.Entries)
+                {
+                    // Delete all versions
+                    foreach (var version in kv.Value.Versions)
+                    {
+                        context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                    }
+                }
+            }
         }
 
         public sealed class ObjectInfo
@@ -751,6 +777,57 @@ namespace CloudSync.Core
                 sb.Append(' ');
 
                 Console.WriteLine(sb.ToString());
+            }
+        }
+
+        public void Remove(ref Context context, string path)
+        {
+            // Open the destination except the last path element
+            path = LexicalPath.Clean(path);
+            string pathDir = LexicalPath.GetDirectoryName(path);
+            Dir dir = Dir.Open(ref context, pathDir, false, false);
+
+            // Lookup the last path element into the directory
+            var lastDest = Path.GetFileName(path);
+            if (!dir.TryGetEntry(lastDest, out DirEntry de))
+                return;
+            if(Dir.IsFile(de))
+            {
+                dir.RemoveEntry(lastDest);
+            }
+            else
+            {
+                var scanStack = new Stack<string>();
+                logger.Debug($"Queueing directory '{path}'");
+                scanStack.Push(path);
+
+                var stack = new Stack<string>();
+                while(scanStack.Count != 0)
+                {
+                    var top = scanStack.Pop();
+                    dir = Dir.Open(ref context, top, false, false);
+                    stack.Push(top);
+                    foreach(var kv in dir)
+                    {
+                        if (Dir.IsDir(kv.Value))
+                        {
+                            var fullPath = LexicalPath.Combine(top, kv.Key);
+                            logger.Debug($"Queueing directory '{fullPath}'");
+                            scanStack.Push(fullPath);
+                        }
+                    }
+                }
+
+                while(stack.Count != 0)
+                {
+                    var top = stack.Pop();
+                    logger.Debug($"Removing directory '{top}'");
+                    dir = Dir.Open(ref context, top, false, false);
+                    dir.RemoveAllEntries();
+                    var parentDir = Dir.Open(ref context, LexicalPath.GetDirectoryName(top));
+                    parentDir.RemoveEntry(LexicalPath.GetFileName(top));
+                    logger.Debug($"Removed directory '{top}'");
+                }
             }
         }
     }
