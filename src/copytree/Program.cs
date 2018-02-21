@@ -1,20 +1,30 @@
-﻿using System;
+﻿using ColoredConsole;
+using CommandLine;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
 namespace copytree
 {
+    class Options
+    {
+        [Option('m', "max-size", Default = 1024, HelpText = "The maximum file size.")]
+        public int MaxSize { get; set; }
+
+        [Value(0)]
+        public string Src { get; set; }
+
+        [Value(1)]
+        public string Dest { get; set; }
+    }
+
     class Program
     {
-        static void Main(string[] args)
+        static void CopyTree(Options options)
         {
-            // Copy a directory, but the file content is replaced
-            // with random, short data.
+            var src = options.Src;
+            var dest = options.Dest;
 
-            var src = args[0];
-            var dest = args[1];
-
-            const int maxLen = 1024;
             var random = new Random();
 
             if (Directory.Exists(dest))
@@ -24,7 +34,7 @@ namespace copytree
 
             Queue<Tuple<string, string>> queue = new Queue<Tuple<string, string>>();
             queue.Enqueue(Tuple.Create(src, dest));
-            while(queue.Count > 0)
+            while (queue.Count > 0)
             {
                 var tuple = queue.Dequeue();
 
@@ -51,11 +61,30 @@ namespace copytree
                     {
                         // A file - write some data
                         var fullDestPath = Path.Combine(tuple.Item2, Path.GetFileName(entry));
-                        var len = random.Next(1, maxLen);
+                        var len = random.Next(1, options.MaxSize);
                         var buffer = new byte[len];
                         File.WriteAllBytes(fullDestPath, buffer);
                     }
                 }
+            }
+        }
+
+        static void Main(string[] args)
+        {
+            // Copy a directory, but the file content is replaced
+            // with random, short data.
+
+            try
+            {
+                Parser.Default.ParseArguments<Options>(args)
+                    .WithParsed<Options>(opts => CopyTree(opts))
+                    .WithNotParsed(errs => { foreach (var e in errs) ColorConsole.WriteLine($"copytree encountered a fatal error: {e.ToString()}".OnDarkRed()); });
+            }
+            catch (Exception ee)
+            {
+                ColorConsole.WriteLine($"cync encountered a fatal error: {ee.ToString()}".OnDarkRed());
+                if (ee.InnerException != null)
+                    ColorConsole.WriteLine($"cync encountered a fatal error: {ee.ToString()}".OnDarkRed());
             }
         }
     }
