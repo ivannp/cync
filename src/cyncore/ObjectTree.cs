@@ -1,7 +1,6 @@
 ﻿using Google.Protobuf;
 using NLog;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -869,6 +868,70 @@ namespace CloudSync.Core
 
             srcDir.RemoveEntry(srcFileName, false);
             srcDir.Write();
+        }
+
+        public void Verify(ref Context context)
+        {
+            var uuids = ListUuids(context);
+            var objects = ListObjects(ref context);
+
+            var orphanUuids = uuids.Where(s => !objects.ContainsKey(s)).ToList();
+            var orphanObjects = objects.Where(kv => !uuids.Contains(kv.Key)).Select(kv => kv.Value).ToList();
+
+            foreach(var uuid in orphanUuids)
+                logger.Error($"Object {uuid} is an orphan.");
+
+            foreach(var obj in orphanObjects)
+                logger.Error($"Path {obj} exists only in the file system metadata.");
+
+            if(orphanUuids.Count == 0 && orphanObjects.Count == 0)
+                logger.Info("Verification was successful. No errors were found.");
+        }
+
+        private HashSet<string> ListUuids(Context context)
+        {
+            var storage = context.Storage;
+
+            var folders = new List<string>();
+            foreach (var item in storage.ListDirectory(ObjectsDir))
+            {
+                if (item.IsDir && item.Name.Length == 2)
+                    folders.Add(item.Name);
+            }
+
+            var uuids = new HashSet<string>();
+
+            foreach (var folder in folders)
+            {
+                var files = storage.ListDirectory(LexicalPath.Combine(ObjectsDir, folder));
+                foreach(var file in files)
+                    uuids.Add(folder + file.Name);
+            }
+
+            return uuids;
+        }
+
+        private Dictionary<string, string> ListObjects(ref Context context)
+        {
+            var res = new Dictionary<string, string>();
+            var queue = new Queue<string>();
+            queue.Enqueue("/");
+            while(queue.Count != 0)
+            {
+                var path = queue.Dequeue();
+                var dir = Dir.Open(ref context, path);
+                foreach(var kv in dir)
+                {
+                    var fullPath = LexicalPath.Combine(path, kv.Key);
+                    foreach (var version in kv.Value.Versions)
+                        res.Add(version.Uuid, fullPath);
+                    if (kv.Value.Type == DirEntryType.Dir)
+                        queue.Enqueue(fullPath);
+                }
+            }
+            // The traversal is successfull, the root directory exists. Add it.
+            res.Add(RootId.ToString(), "/");
+            return res;
         }
     }
 }

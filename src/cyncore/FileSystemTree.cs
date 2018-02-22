@@ -233,5 +233,10 @@ namespace CloudSync.Core
                 sb.Append(_invalidChars.Contains(path[i]) ? '_' : path[i]);
             return sb.ToString();
         }
+
+        public void Verify(ref Context context)
+        {
+            throw new NotImplementedException("Plain repositories don't support verify.");
+        }
     }
 }

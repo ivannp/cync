@@ -75,7 +75,15 @@ namespace CloudSync.Core
 
         public IEnumerable<ItemInfo> ListDirectory(string path)
         {
-            throw new System.NotImplementedException();
+            path = Path.Combine(RootPath, path);
+            var items = new List<ItemInfo>();
+            foreach (var entry in Directory.EnumerateFileSystemEntries(path))
+            {
+                var info = new FileInfo(entry);
+                var isDir = (info.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
+                items.Add(new ItemInfo { Name = info.Name, Size = isDir ? (long?)null : info.Length, IsDir = isDir, LastWriteTime = info.LastWriteTime });
+            }
+            return items;
         }
 
         public ItemInfo GetItemInfo(string path)

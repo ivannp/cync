@@ -39,5 +39,10 @@
                 return ObjectTree.ObjectsDir + "/" + Directory();
             }
         }
+
+        public override string ToString()
+        {
+            return id;
+        }
     }
 }
