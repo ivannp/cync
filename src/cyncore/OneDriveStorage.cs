@@ -93,7 +93,16 @@ namespace CloudSync.Core
 
         public LocalPath Download(string src)
         {
-            throw new NotImplementedException();
+            src = EncodePath(LexicalPath.Combine(_rootPath, src));
+            LocalPath res = new LocalPath(Path.GetTempFileName());
+
+            using (var stream = _graphServiceClient.Drive.Root.ItemWithPath(src).Content.Request().GetAsync().Result)
+            using (var outputStream = System.IO.File.OpenWrite(res.Path))
+            {
+                stream.CopyTo(outputStream);
+            }
+
+            return res;
         }
 
         public Dictionary<string, object> GetConfig()

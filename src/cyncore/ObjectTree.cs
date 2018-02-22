@@ -11,11 +11,16 @@ namespace CloudSync.Core
 {
     public class ObjectTree : IObjectTree
     {
+        static readonly HashSet<char> _hexDigits = new HashSet<char>()
+        {
+            'a', 'b', 'c', 'd', 'e', 'f',
+            'A', 'B', 'C', 'D', 'E', 'F',
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+        };
+
         public static FileId RootId = new FileId("7f5e4fcc312f49bf8a057dbd0008c7af");
         public const string ObjectsDir = "objects";
         private const string EyeCatcher = "clouddir";
-
-        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private static void Upload(ref Context context, string src, FileId fid)
         {
@@ -591,7 +596,7 @@ namespace CloudSync.Core
                         var srcDirPath = LexicalPath.Combine(tt.Item1, pp.Key);
                         Directory.CreateDirectory(destDirPath);
                         queue.Enqueue(Tuple.Create(srcDirPath, destDirPath));
-                        logger.Debug($"Queueing directory {srcDirPath} [target: {destDirPath}]");
+                        context.InfoWriteLine($"Queueing directory {srcDirPath} [target: {destDirPath}]");
                     }
                     else
                     {
@@ -600,11 +605,11 @@ namespace CloudSync.Core
                         var bb = srcDir.PullFile(pp.Key, destFullPath, false);
                         if (bb)
                         {
-                            logger.Debug($"Copied {srcFullPath} to {destFullPath}");
+                            context.InfoWriteLine($"Copied {srcFullPath} to {destFullPath}");
                         }
                         else
                         {
-                            logger.Debug($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
+                            context.InfoWriteLine($"Skipped {srcFullPath}. The local file [{destFullPath}] is either newer or the same as the repository file.");
                         }
                     }
                 }
@@ -653,7 +658,7 @@ namespace CloudSync.Core
                     {
                         string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                         queue.Enqueue(Tuple.Create(src, fullDestPath));
-                        logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
+                        context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
                     }
                     else
                     {
@@ -665,7 +670,7 @@ namespace CloudSync.Core
                 {
                     string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
-                    logger.Debug($"Queueing directory '{src}' [target: '{fullDestPath}']");
+                    context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
 
                 // Process the queue
@@ -697,14 +702,16 @@ namespace CloudSync.Core
                             // Enque the directory for later processing
                             var destFullPath = LexicalPath.Combine(tt.Item2, Path.GetFileName(ee));
                             queue.Enqueue(Tuple.Create(ee, destFullPath));
-                            logger.Debug($"Queueing directory '{ee}' [target: '{destFullPath}']");
+                            context.InfoWriteLine($"Queueing directory '{ee}' [target: '{destFullPath}']");
                         }
                         else
                         {
                             // A file - copy it
                             var added = curDestDir.PushFile(ee, Path.GetFileName(ee), false);
-                            if (added) logger.Debug($"Added '{ee}' as '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}'");
-                            else logger.Debug($"Skipped '{ee}'. The repository file '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}' is newer or the same.");
+                            if (added)
+                                context.InfoWriteLine($"Added '{ee}' as '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}'");
+                            else
+                                context.InfoWriteLine($"Skipped '{ee}'. The repository file '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}' is newer or the same.");
                         }
                     }
                 }
@@ -742,7 +749,7 @@ namespace CloudSync.Core
             else
             {
                 var scanStack = new Stack<string>();
-                logger.Debug($"Queueing directory '{path}'");
+                context.InfoWriteLine($"Queueing directory '{path}'");
                 scanStack.Push(path);
 
                 var stack = new Stack<string>();
@@ -756,7 +763,7 @@ namespace CloudSync.Core
                         if (Dir.IsDir(kv.Value))
                         {
                             var fullPath = LexicalPath.Combine(top, kv.Key);
-                            logger.Debug($"Queueing directory '{fullPath}'");
+                            context.InfoWriteLine($"Queueing directory '{fullPath}'");
                             scanStack.Push(fullPath);
                         }
                     }
@@ -765,12 +772,12 @@ namespace CloudSync.Core
                 while(stack.Count != 0)
                 {
                     var top = stack.Pop();
-                    logger.Debug($"Removing directory '{top}'");
+                    context.InfoWriteLine($"Removing directory '{top}'");
                     dir = Dir.Open(ref context, top, false, false);
                     dir.RemoveAllEntries();
                     var parentDir = Dir.Open(ref context, LexicalPath.GetDirectoryName(top));
                     parentDir.RemoveEntry(LexicalPath.GetFileName(top));
-                    logger.Debug($"Removed directory '{top}'");
+                    context.InfoWriteLine($"Removed directory '{top}'");
                 }
             }
         }
@@ -779,11 +786,16 @@ namespace CloudSync.Core
         {
             // Open the destination except the last path element
             src = LexicalPath.Clean(src);
+            if(src == "/")
+            {
+                context.ErrorWriteLine($"Cannot move the root directory.");
+                return;
+            }
             string srcDirPath = LexicalPath.GetDirectoryName(src);
             var srcDir = Dir.Open(ref context, srcDirPath, false, false);
 
             // Lookup the last path element into the directory
-            var srcFileName = Path.GetFileName(srcDirPath);
+            var srcFileName = LexicalPath.GetFileName(src);
             if (!srcDir.TryGetEntry(srcFileName, out DirEntry de))
                 return;
 
@@ -791,10 +803,11 @@ namespace CloudSync.Core
             string destDirPath = LexicalPath.GetDirectoryName(dest);
             var destDir = Dir.Open(ref context, destDirPath, false, false);
 
-            var destFileName = Path.GetFileName(destDirPath);
+            var destFileName = Path.GetFileName(dest);
             if (destDir.TryGetEntry(srcFileName, out DirEntry destDirEntry))
             {
-                throw new Exception($"The destination exists.");
+                context.ErrorWriteLine($"The destination exists.");
+                return;
             }
 
             destDir.AddEntry(destFileName, de);
@@ -813,13 +826,23 @@ namespace CloudSync.Core
             var orphanObjects = objects.Where(kv => !uuids.Contains(kv.Key)).Select(kv => kv.Value).ToList();
 
             foreach(var uuid in orphanUuids)
-                logger.Error($"Object {uuid} is an orphan.");
+                context.ErrorWriteLine($"Object {uuid} is an orphan.");
 
             foreach(var obj in orphanObjects)
-                logger.Error($"Path {obj} exists only in the file system metadata.");
+                context.ErrorWriteLine($"Path {obj} exists only in the file system metadata.");
 
             if(orphanUuids.Count == 0 && orphanObjects.Count == 0)
-                logger.Info("Verification was successful. No errors were found.");
+                context.AlwaysWriteLine("Verification was successful. No errors were found.");
+        }
+
+        private bool IsHex(char c)
+        {
+            return _hexDigits.Contains(c);
+        }
+
+        private bool IsFolderName(string name)
+        {
+            return name.Length == 2 && IsHex(name[0]) && IsHex(name[1]);
         }
 
         private HashSet<string> ListUuids(Context context)
@@ -829,7 +852,7 @@ namespace CloudSync.Core
             var folders = new List<string>();
             foreach (var item in storage.ListDirectory(ObjectsDir))
             {
-                if (item.IsDir && item.Name.Length == 2)
+                if (item.IsDir && IsFolderName(item.Name))
                     folders.Add(item.Name);
             }
 

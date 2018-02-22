@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using System;
 
 namespace CloudSync.Core
 {
@@ -12,6 +13,10 @@ namespace CloudSync.Core
         public IStorage Storage { set; get; }
 
         public EncodingConfig EncodingCfg { set; get; }
+
+        public Action<string> AlwaysWriteLine { get; set; } = (s) => Console.WriteLine(s);
+        public Action<string> ErrorWriteLine { get; set; } = (s) => Console.WriteLine(s);
+        public Action<string> InfoWriteLine { get; set; } = (s) => Console.WriteLine(s);
 
         public void InitEncodingConfig(bool force = false)
         {

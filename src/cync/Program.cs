@@ -32,10 +32,10 @@ namespace CloudSync.Tool
             [Option('l', "local", Default = null, HelpText = "Initialize a local repository at the given path.")]
             public string Local { get; set; }
 
-            [Option("google-drive", Default = null, HelpText = "Initialize a Google Drive repository at the given path.")]
+            [Option('g', "google-drive", Default = null, HelpText = "Initialize a Google Drive repository at the given path.")]
             public string GoogleDrive { get; set; }
 
-            [Option("onedrive", Default = null, HelpText = "Initialize a OneDrive repository at the given path.")]
+            [Option('o', "onedrive", Default = null, HelpText = "Initialize a OneDrive repository at the given path.")]
             public string OneDrive { get; set; }
 
             [Option("sftp", Default = null, HelpText = "Initialize a repository over SFTP, at the given path.")]
@@ -123,11 +123,14 @@ namespace CloudSync.Tool
             [Option('v', "verbose", Default = false, HelpText = "Verbose mode.")]
             public bool Verbose { get; set; }
 
-            [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
+            [Option('g', "google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
             [Option("plain-google-drive", Default = false, HelpText = "Synchronize to Google Drive path. No encryption, no compression.")]
             public bool PlainGoogleDrive { get; set; }
+
+            [Option('o', "onedrive", Default = null, HelpText = "The OneDrive repository to use.")]
+            public string OneDrive { get; set; }
 
             [Option("plain-onedrive", Default = false, HelpText = "Synchronize to a OneDrive path. No encryption, no compression.")]
             public bool PlainOneDrive { get; set; }
@@ -157,7 +160,7 @@ namespace CloudSync.Tool
             [Option('v', "verbose", Default = false, HelpText = "Verbose mode.")]
             public bool Verbose { get; set; }
 
-            [Option("google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
+            [Option('g', "google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
             public string GoogleDrive { get; set; }
 
             [Option("plain-google-drive", Default = false, HelpText = "Synchronize Google Drive path to a local path. No encryption, no compression.")]
@@ -302,14 +305,13 @@ namespace CloudSync.Tool
 
         static void CmdInit(InitOptions io)
         {
-            if (io.Verbose)
-                LogHelper.MakeConsoleVerbose();
-
             string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync");
 
             IObjectTree tree = null;
 
-            Context context = new Context { RepoCfg = new RepoConfig(io.CompressionLevel, io.MaxVersions, io.Ciphers) };
+            var context = DefaultContext(io.Verbose);
+            context.RepoCfg = new RepoConfig(io.CompressionLevel, io.MaxVersions, io.Ciphers);
+
             if (io.Local != null)
             {
                 context.Storage = new LocalStorage(io.Local);
@@ -354,19 +356,16 @@ namespace CloudSync.Tool
             SaveContext(jcfg, dotPath);
         }
 
-        static void CmdPush(PushOptions oo)
+        static void CmdPush(PushOptions options)
         {
-            if (oo.Verbose)
-                LogHelper.MakeConsoleVerbose();
-
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(options.Verbose);
 
             string src = "."; // Current folder by default
             string dest = "/"; // Repository root as default
 
-            var items = new List<string>(oo.Items);
+            var items = new List<string>(options.Items);
 
             if (items.Count == 1)
             {
@@ -380,28 +379,28 @@ namespace CloudSync.Tool
 
             IObjectTree tree = null;
 
-            if (oo.Local != null)
+            if (options.Local != null)
             {
-                context.Storage = new LocalStorage(oo.Local);
+                context.Storage = new LocalStorage(options.Local);
                 context.InitRepoFromStorage();
 
                 jcfg["Repository"] = context.Storage.ToJson();
 
                 tree = new ObjectTree();
             }
-            else if (oo.GoogleDrive != null)
+            else if (options.GoogleDrive != null)
             {
-                string tokenPath = oo.TokenPath ?? DotPath;
-                context.Storage = new GoogleDriveStorage(oo.GoogleDrive, tokenPath);
+                string tokenPath = options.TokenPath ?? DotPath;
+                context.Storage = new GoogleDriveStorage(options.GoogleDrive, tokenPath);
                 context.InitRepoFromStorage();
 
                 jcfg["Repository"] = context.Storage.ToJson();
 
                 tree = new ObjectTree();
             }
-            else if (oo.PlainGoogleDrive)
+            else if (options.PlainGoogleDrive)
             {
-                string tokenPath = oo.TokenPath ?? DotPath;
+                string tokenPath = options.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
                 // No need to initialize the repository
 
@@ -409,9 +408,19 @@ namespace CloudSync.Tool
 
                 tree = new FileSystemTree();
             }
-            else if (oo.PlainOneDrive)
+            else if (options.OneDrive != null)
             {
-                string tokenPath = oo.TokenPath ?? DotPath;
+                string tokenPath = options.TokenPath ?? DotPath;
+                context.Storage = new OneDriveStorage(options.OneDrive, tokenPath);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else if (options.PlainOneDrive)
+            {
+                string tokenPath = options.TokenPath ?? DotPath;
                 context.Storage = new OneDriveStorage("/", tokenPath);
                 // No need to initialize the repository
 
@@ -427,17 +436,17 @@ namespace CloudSync.Tool
                 tree = new ObjectTree();
             }
 
-            if (oo.KeyFile != null)
+            if (options.KeyFile != null)
             {
-                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
-                jcfg["KeyFile"] = oo.KeyFile;
+                context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
+                jcfg["KeyFile"] = options.KeyFile;
             }
             else if (jcfg["KeyFile"] != null)
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
 
-            if (oo.UseChecksums)
+            if (options.UseChecksums)
             {
                 context.UseChecksums = true;
                 jcfg["UseChecksums"] = true;
@@ -453,19 +462,16 @@ namespace CloudSync.Tool
             SaveContext(jcfg, DotPath);
         }
 
-        static void CmdPull(PullOptions oo)
+        static void CmdPull(PullOptions options)
         {
-            if (oo.Verbose)
-                LogHelper.MakeConsoleVerbose();
-
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(options.Verbose);
 
             string src;
             string dest = Directory.GetCurrentDirectory(); // By default
 
-            var items = new List<string>(oo.Items);
+            var items = new List<string>(options.Items);
 
             if (items.Count == 1)
             {
@@ -483,28 +489,28 @@ namespace CloudSync.Tool
 
             IObjectTree tree = null;
 
-            if (oo.Local != null)
+            if (options.Local != null)
             {
-                context.Storage = new LocalStorage(oo.Local);
+                context.Storage = new LocalStorage(options.Local);
                 context.InitRepoFromStorage();
 
                 jcfg["Repository"] = context.Storage.ToJson();
 
                 tree = new ObjectTree();
             }
-            else if (oo.GoogleDrive != null)
+            else if (options.GoogleDrive != null)
             {
-                string tokenPath = oo.TokenPath ?? DotPath;
-                context.Storage = new GoogleDriveStorage(oo.GoogleDrive, tokenPath);
+                string tokenPath = options.TokenPath ?? DotPath;
+                context.Storage = new GoogleDriveStorage(options.GoogleDrive, tokenPath);
                 context.InitRepoFromStorage();
 
                 jcfg["Repository"] = context.Storage.ToJson();
 
                 tree = new ObjectTree();
             }
-            else if (oo.PlainGoogleDrive)
+            else if (options.PlainGoogleDrive)
             {
-                string tokenPath = oo.TokenPath ?? DotPath;
+                string tokenPath = options.TokenPath ?? DotPath;
                 context.Storage = new GoogleDriveStorage("/", tokenPath);
                 // No need to initialize a repository
 
@@ -520,10 +526,10 @@ namespace CloudSync.Tool
                 tree = new ObjectTree();
             }
 
-            if (oo.KeyFile != null)
+            if (options.KeyFile != null)
             {
-                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
-                jcfg["KeyFile"] = oo.KeyFile;
+                context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
+                jcfg["KeyFile"] = options.KeyFile;
             }
             else if (jcfg["KeyFile"] != null)
             {
@@ -540,7 +546,7 @@ namespace CloudSync.Tool
         {
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(false);
 
             string path = "/";
 
@@ -631,12 +637,9 @@ namespace CloudSync.Tool
 
         static void CmdRemove(RemoveOptions options)
         {
-            if (options.Verbose)
-                LogHelper.MakeConsoleVerbose();
-
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(options.Verbose);
 
             IObjectTree tree = null;
 
@@ -718,7 +721,7 @@ namespace CloudSync.Tool
         {
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(false);
 
             string src;
             string dest = "/";
@@ -818,7 +821,7 @@ namespace CloudSync.Tool
         {
             var jcfg = LoadContext(DotPath);
 
-            Context context = new Context { };
+            Context context = DefaultContext(false);
 
             IObjectTree tree = null;
 
@@ -875,37 +878,33 @@ namespace CloudSync.Tool
             SaveContext(jcfg, DotPath);
         }
 
-        static void CmdEncode(EncodeOptions oo)
+        static void CmdEncode(EncodeOptions options)
         {
-            if (oo.Verbose) LogHelper.MakeConsoleVerbose();
+            Context context = DefaultContext(options.Verbose);
 
-            Context context = new Context { };
-
-            context.RepoCfg = new RepoConfig(oo.CompressionLevel, 1, oo.Ciphers);
-            if (oo.KeyFile != null)
+            context.RepoCfg = new RepoConfig(options.CompressionLevel, 1, options.Ciphers);
+            if (options.KeyFile != null)
             {
-                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
+                context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
             }
 
             byte[] hash = new byte[256];
-            CodecHelper.EncodeFile(ref context, oo.Items[0], oo.Items[1], ref hash);
+            CodecHelper.EncodeFile(ref context, options.Items[0], options.Items[1], ref hash);
         }
 
-        static void CmdDecode(DecodeOptions oo)
+        static void CmdDecode(DecodeOptions options)
         {
-            if (oo.Verbose) LogHelper.MakeConsoleVerbose();
-
-            Context context = new Context { };
+            Context context = DefaultContext(options.Verbose);
 
             // RepoCfg is initialized although it's not used - otherwise crash
-            context.RepoCfg = new RepoConfig(0, 1, oo.Ciphers);
-            if (oo.KeyFile != null)
+            context.RepoCfg = new RepoConfig(0, 1, options.Ciphers);
+            if (options.KeyFile != null)
             {
-                context.Key = Convert.FromBase64String(File.ReadAllText(oo.KeyFile));
+                context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
             }
 
             byte[] hash = new byte[256];
-            CodecHelper.DecodeFile(ref context, oo.Items[0], oo.Items[1], ref hash);
+            CodecHelper.DecodeFile(ref context, options.Items[0], options.Items[1], ref hash);
         }
 
         static void CmdKeyGen(KeyGenOptions o)
@@ -934,13 +933,18 @@ namespace CloudSync.Tool
                     break;
 
                 case "googledrive":
+                {
                     string tokenPath = repo["Store"] != null ? repo["Store"].ToString() : DotPath;
                     res = new GoogleDriveStorage(repo["Path"].ToString(), tokenPath);
                     break;
+                }
 
                 case "onedrive":
-                    // TODO(ivannp) Implement
+                {
+                    string tokenPath = repo["Store"] != null ? repo["Store"].ToString() : DotPath;
+                    res = new OneDriveStorage(repo["Path"].ToString(), tokenPath);
                     break;
+                }
 
                 case "sftp":
                     res = new SftpStorage(
@@ -980,6 +984,16 @@ namespace CloudSync.Tool
                 return JObject.Parse(File.ReadAllText(path));
             }
             return new JObject();
+        }
+
+        static Context DefaultContext(bool verbose)
+        {
+            return new Context
+            {
+                AlwaysWriteLine = (s) => ColorConsole.WriteLine(s),
+                ErrorWriteLine = (s) => ColorConsole.WriteLine(s.Red()),
+                InfoWriteLine = (verbose ? (Action<string>)((s) => ColorConsole.WriteLine(s.Gray())) : (s) => {})
+            };
         }
 
         static void Main(string[] args)

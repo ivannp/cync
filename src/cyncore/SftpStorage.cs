@@ -114,7 +114,12 @@ namespace CloudSync.Core
 
             var res = new List<ItemInfo>();
             foreach(var info in _client.ListDirectory(path))
+            {
+                if (info.Name == "." || info.Name == "..")
+                    continue;
                 res.Add(new ItemInfo { Name = info.Name, Size = info.Length, IsDir = info.IsDirectory, Id = info.FullName, LastWriteTime = info.LastWriteTime });
+            }
+                
             return res;
         }
 
