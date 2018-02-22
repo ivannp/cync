@@ -35,8 +35,6 @@ namespace CloudSync.Core
 
         void Upload(string src, string dest, bool finalizeLocal = true);
 
-        FileInfo DefaultFileInfo(bool dir = true);
-
         void RemoveFile(string path);
 
         void Move(string src, string dest);

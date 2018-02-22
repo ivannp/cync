@@ -2,33 +2,26 @@
 {
     public class FileId
     {
-        string id;
+        string _id;
 
         public FileId(string ss)
         {
-            id = ss;
+            _id = ss;
         }
 
         public string Get()
         {
-            return id;
+            return _id;
         }
 
-        public string Directory()
-        {
-            return id.Substring(0, 2);
-        }
-
-        public string FileName()
-        {
-            return id.Substring(2);
-        }
+        public string Directory { get { return _id.Substring(0, 2); } }
+        public string FileName { get { return _id.Substring(2); } }
 
         public string FullPath
         {
             get
             {
-                return ObjectTree.ObjectsDir + "/" + Directory() + "/" + FileName();
+                return ObjectTree.ObjectsDir + "/" + Directory + "/" + FileName;
             }
         }
 
@@ -36,13 +29,13 @@
         {
             get
             {
-                return ObjectTree.ObjectsDir + "/" + Directory();
+                return ObjectTree.ObjectsDir + "/" + Directory;
             }
         }
 
         public override string ToString()
         {
-            return id;
+            return _id;
         }
     }
 }

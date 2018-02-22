@@ -53,12 +53,6 @@ namespace CloudSync.Core
             else File.Copy(src, pp);
         }
 
-        public FileInfo DefaultFileInfo(bool dir = true)
-        {
-            if (dir) return new FileInfo(RootPath);
-            else return new FileInfo(LexicalPath.Combine(RootPath, RepoConfig.ConfigFile));
-        }
-
         public void RemoveFile(string path)
         {
             var pp = LexicalPath.Combine(RootPath, path);

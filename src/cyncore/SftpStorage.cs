@@ -74,11 +74,6 @@ namespace CloudSync.Core
             TryCreateDirectory(path);
         }
 
-        public FileInfo DefaultFileInfo(bool dir = true)
-        {
-            throw new NotImplementedException();
-        }
-
         public LocalPath Download(string src)
         {
             var path = string.IsNullOrWhiteSpace(_rootPath) ? src : LexicalPath.Combine(_rootPath, src);

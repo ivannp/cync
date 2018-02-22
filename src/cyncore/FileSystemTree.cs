@@ -234,9 +234,14 @@ namespace CloudSync.Core
             return sb.ToString();
         }
 
-        public void Verify(ref Context context)
+        public void Verify(ref Context context, bool repair)
         {
             throw new NotImplementedException("Plain repositories don't support verify.");
+        }
+
+        public void CreateDirectory(ref Context context, string path, bool createParents)
+        {
+            context.Storage.CreateDirectory(path);
         }
     }
 }

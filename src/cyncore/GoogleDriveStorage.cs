@@ -83,6 +83,8 @@ namespace CloudSync.Core
 
         public IEnumerable<ItemInfo> ListDirectory(string path)
         {
+            path = LexicalPath.Combine(_rootPath, path);
+
             var res = new List<ItemInfo>();
 
             var id = GetId(path);
@@ -133,11 +135,6 @@ namespace CloudSync.Core
                 return null;
             var file = files[0];
             return new ItemInfo { Name = file.Name, Size = file.Size, IsDir = file.MimeType == "application/vnd.google-apps.folder", Id = file.Id, LastWriteTime = file.ModifiedTime };
-        }
-
-        public FileInfo DefaultFileInfo(bool dir = true)
-        {
-            throw new NotImplementedException();
         }
 
         public LocalPath Download(string src)

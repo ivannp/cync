@@ -27,6 +27,7 @@
     <Compile Include="..\..\src\cyncore\LocalStorage.cs" Link="LocalStorage.cs" />
     <Compile Include="..\..\src\cyncore\LogHelper.cs" Link="LogHelper.cs" />
     <Compile Include="..\..\src\cyncore\ObjectTree.cs" Link="ObjectTree.cs" />
+    <Compile Include="..\..\src\cyncore\ObjectTreeException.cs" Link="ObjectTreeException.cs" />
     <Compile Include="..\..\src\cyncore\OneDriveStorage.cs" Link="OneDriveStorage.cs" />
     <Compile Include="..\..\src\cyncore\OSPath.cs" Link="OSPath.cs" />
     <Compile Include="..\..\src\cyncore\OutputColumn.cs" Link="OutputColumn.cs" />

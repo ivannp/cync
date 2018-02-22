@@ -301,6 +301,43 @@ namespace CloudSync.Tool
 
             [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
             public string TokenPath { get; set; }
+
+            [Option("repair", Default = null, HelpText = "Attempt to repair identified problems.")]
+            public bool Repair { get; set; }
+        }
+
+        [Verb("mkdir", HelpText = "Create directories.")]
+        class MkdirOptions
+        {
+            [Option('l', "local", Default = null, HelpText = "The local repository to use.")]
+            public string Local { get; set; }
+
+            [Option("key-file", Default = null, HelpText = "The user provided key file.")]
+            public string KeyFile { get; set; }
+
+            [Option('g', "google-drive", Default = null, HelpText = "The Google Drive repository to use.")]
+            public string GoogleDrive { get; set; }
+
+            [Option("plain-google-drive", Default = false, HelpText = "List a plain (no encryption, no compression) Google Drive folder.")]
+            public bool PlainGoogleDrive { get; set; }
+
+            [Option('o', "onedrive", Default = null, HelpText = "The OneDrive repository to use.")]
+            public string OneDrive { get; set; }
+
+            [Option("plain-onedrive", Default = false, HelpText = "List a plain (no encryption, no compression) OneDrive folder.")]
+            public bool PlainOneDrive { get; set; }
+
+            [Option("sftp", Default = null, HelpText = "List a path in a SFTP repository.")]
+            public string Sftp { get; set; }
+
+            [Option("token-path", Default = null, HelpText = "The path to store (for re-use) the authentication token.")]
+            public string TokenPath { get; set; }
+
+            [Option("parents", Default = null, HelpText = "Create parent directories as needed.")]
+            public bool Parents { get; set; }
+
+            [Value(0, Min = 1, Required = true)]
+            public IEnumerable<string> Items { get; set; }
         }
 
         static void CmdInit(InitOptions io)
@@ -872,7 +909,74 @@ namespace CloudSync.Tool
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
 
-            tree.Verify(ref context);
+            tree.Verify(ref context, options.Repair);
+
+            // Save the current context
+            SaveContext(jcfg, DotPath);
+        }
+
+        static void CmdMkdir(MkdirOptions options)
+        {
+            var jcfg = LoadContext(DotPath);
+
+            Context context = DefaultContext(false);
+
+            IObjectTree tree = null;
+
+            if (options.Local != null)
+            {
+                context.Storage = new LocalStorage(options.Local);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else if (options.GoogleDrive != null)
+            {
+                string tokenPath = options.TokenPath ?? DotPath;
+                context.Storage = new GoogleDriveStorage(options.GoogleDrive, tokenPath);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else if (options.OneDrive != null)
+            {
+                string tokenPath = options.TokenPath ?? DotPath;
+                context.Storage = new OneDriveStorage(options.OneDrive, tokenPath);
+                context.InitRepoFromStorage();
+
+                jcfg["Repository"] = context.Storage.ToJson();
+
+                tree = new ObjectTree();
+            }
+            else
+            {
+                context.Storage = RepoFromJson(jcfg);
+                context.InitRepoFromStorage();
+
+                tree = new ObjectTree();
+            }
+
+            if (options.KeyFile != null)
+            {
+                context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
+                jcfg["KeyFile"] = options.KeyFile;
+            }
+            else if (jcfg["KeyFile"] != null)
+            {
+                context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
+            }
+
+            foreach(var item in options.Items)
+            {
+                var path = LexicalPath.Clean(item);
+                if (path[0] != '/')
+                    path = "/" + path;
+                tree.CreateDirectory(ref context, path, options.Parents);
+            }
 
             // Save the current context
             SaveContext(jcfg, DotPath);
@@ -1003,7 +1107,7 @@ namespace CloudSync.Tool
 
             try
             {
-                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions>(args)
+                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions, MkdirOptions>(args)
                     .WithParsed<InitOptions>(opts => CmdInit(opts))
                     .WithParsed<KeyGenOptions>(opts => CmdKeyGen(opts))
                     .WithParsed<EncodeOptions>(opts => CmdEncode(opts))
@@ -1014,6 +1118,7 @@ namespace CloudSync.Tool
                     .WithParsed<RemoveOptions>(opts => CmdRemove(opts))
                     .WithParsed<MoveOptions>(opts => CmdMove(opts))
                     .WithParsed<VerifyOptions>(opts => CmdVerify(opts))
+                    .WithParsed<MkdirOptions>(opts => CmdMkdir(opts))
                     .WithNotParsed(errs => { foreach (var e in errs) _logger.Fatal($"cync encountered a fatal error: {e.ToString()}"); });
             }
             catch (Exception ee)

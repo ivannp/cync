@@ -1,11 +1,9 @@
 ﻿using Google.Protobuf;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace CloudSync.Core
 {
@@ -24,9 +22,9 @@ namespace CloudSync.Core
 
         private static void Upload(ref Context context, string src, FileId fid)
         {
-            var pp = Path.Combine(ObjectsDir, fid.Directory()).Replace(@"\", @"/");
+            var pp = Path.Combine(ObjectsDir, fid.Directory).Replace(@"\", @"/");
             context.Storage.CreateDirectory(pp);
-            pp = Path.Combine(pp, fid.FileName()).Replace(@"\", @"/");
+            pp = Path.Combine(pp, fid.FileName).Replace(@"\", @"/");
             context.Storage.Upload(src, pp, true);
         }
 
@@ -249,20 +247,17 @@ namespace CloudSync.Core
 
             public void AddDir(string name, string existingPath = null)
             {
-                DirEntry de;
-                if (!TryGetEntry(name, out de))
+                if (!TryGetEntry(name, out DirEntry de))
                 {
                     var tt = MakeNewDir(ref context);
-                    FileInfo fi;
                     long lastWriteTime, lastAccessTime, creationTime;
                     if (existingPath == null)
                     {
-                        fi = context.Storage.DefaultFileInfo(true);
                         lastWriteTime = lastAccessTime = creationTime = DateTime.Now.Ticks;
                     }
                     else
                     {
-                        fi = new FileInfo(existingPath);
+                        var fi = new FileInfo(existingPath);
                         lastWriteTime = fi.LastWriteTimeUtc.Ticks;
                         lastAccessTime = fi.LastAccessTimeUtc.Ticks;
                         creationTime = fi.CreationTimeUtc.Ticks;
@@ -631,44 +626,24 @@ namespace CloudSync.Core
                 // the design of rsync:
                 //
                 // cync push c:/home/user/documents/ /user/documents
-                //    Content of c:/home/user/documents goes into /user
+                //    Content of c:/home/user/documents goes into /user/documents
                 //
                 // cync push c:/home/user/documents /user/documents
-                //    Content of c:/home/user/documents goes into c:/home/user/documents
+                //    Content of c:/home/user/documents goes into /user/documents/documents
                 //
                 // Notice the difference caused by the presence/lack of the final 
                 // directory separator (slash in the above example) in the source
                 // (documents/ vs just documents).
 
-                // We need to figure out whether the destionation exists, and if so, what
-                // is the destionation's type [file vs folder].
-
-                // Open the destination except the last path element
-                dest = LexicalPath.Clean(dest);
-                string destDir = LexicalPath.GetDirectoryName(dest);
-                Dir dir = Dir.Open(ref context, destDir, false, false);
-
-                // Lookup the last path element into the directory
-                var lastDest = Path.GetFileName(src);
-                DirEntry de;
-                bool exists = dir.TryGetEntry(lastDest, out de);
-                if (exists)
+                if(srcEndsWithSeparator)
                 {
-                    if (Dir.IsDir(de))
-                    {
-                        string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
-                        queue.Enqueue(Tuple.Create(src, fullDestPath));
-                        context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
-                    }
-                    else
-                    {
-                        // The last element is a file
-                        throw new PathException("The directory '" + src + "' cannot be copied - a file with the same name exists.");
-                    }
+                    string fullDestPath = dest;
+                    queue.Enqueue(Tuple.Create(src, fullDestPath));
+                    context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
                 else
                 {
-                    string fullDestPath = srcEndsWithSeparator ? dest : LexicalPath.Combine(dest, lastDest);
+                    string fullDestPath = LexicalPath.Combine(dest, Path.GetFileName(src));
                     queue.Enqueue(Tuple.Create(src, fullDestPath));
                     context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
@@ -690,8 +665,8 @@ namespace CloudSync.Core
                         if (!curDestDir.HasEntry(destPath))
                         {
                             curDestDir.AddDir(destPath, tt.Item1);
-                            curDestDir.ChangeDirDown(destPath);
                         }
+                        curDestDir.ChangeDirDown(destPath);
                     }
 
                     foreach (var ee in entries)
@@ -817,7 +792,7 @@ namespace CloudSync.Core
             srcDir.Write();
         }
 
-        public void Verify(ref Context context)
+        public void Verify(ref Context context, bool repair)
         {
             var uuids = ListUuids(context);
             var objects = ListObjects(ref context);
@@ -831,8 +806,59 @@ namespace CloudSync.Core
             foreach(var obj in orphanObjects)
                 context.ErrorWriteLine($"Path {obj} exists only in the file system metadata.");
 
+            if(orphanUuids.Count > 0 || orphanObjects.Count > 0)
+            {
+                context.ErrorWriteLine(string.Format("Examined {0:n0} file system object. Found {1:n0} orphans.", uuids.Count, orphanUuids.Count));
+                context.ErrorWriteLine(string.Format("Examined {0:n0} files and folders. Found {1:n0} orphans.", objects.Count, orphanObjects.Count));
+            }
+
             if(orphanUuids.Count == 0 && orphanObjects.Count == 0)
                 context.AlwaysWriteLine("Verification was successful. No errors were found.");
+
+            if (!repair)
+                return;
+
+            var storage = context.Storage;
+            var repaired = 0;
+            foreach (var uuid in orphanUuids)
+            {
+                var fileId = new FileId(uuid);
+                var path = LexicalPath.Combine(ObjectsDir, fileId.Directory, fileId.FileName);
+                try
+                {
+                    storage.RemoveFile(path);
+                    ++repaired;
+                    context.AlwaysWriteLine($"Removed {uuid}");
+                }
+                catch(Exception)
+                {
+                    context.ErrorWriteLine($"Failed to remove {path}");
+                }
+            }
+            context.ErrorWriteLine(string.Format("{0:n0} out of {1:n0} file system objects were successfully repaired.", repaired, orphanUuids.Count));
+        }
+
+        public void CreateDirectory(ref Context context, string path, bool createParents)
+        {
+            try
+            {
+                if (createParents)
+                {
+                    var dir = Dir.Open(ref context, path, true);
+                    dir.Write();
+                }
+                else
+                {
+                    var parentDir = LexicalPath.GetDirectoryName(path);
+                    var dir = Dir.Open(ref context, parentDir);
+                    dir.AddDir(LexicalPath.GetFileName(path));
+                    dir.Write();
+                }
+            }
+            catch(Exception)
+            {
+                context.ErrorWriteLine($"Failed creating '{path}'");
+            }
         }
 
         private bool IsHex(char c)

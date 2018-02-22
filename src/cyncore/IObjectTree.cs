@@ -10,6 +10,7 @@ namespace CloudSync.Core
         void List(ref Context context, string path, OutputConfig config);
         void Remove(ref Context context, string path);
         void Move(ref Context context, string src, string dest);
-        void Verify(ref Context context);
+        void Verify(ref Context context, bool repair);
+        void CreateDirectory(ref Context context, string path, bool createParents);
     }
 }

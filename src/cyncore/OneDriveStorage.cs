@@ -86,11 +86,6 @@ namespace CloudSync.Core
             }
         }
 
-        public FileInfo DefaultFileInfo(bool dir = true)
-        {
-            throw new NotImplementedException();
-        }
-
         public LocalPath Download(string src)
         {
             src = EncodePath(LexicalPath.Combine(_rootPath, src));
