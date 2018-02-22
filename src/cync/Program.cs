@@ -6,6 +6,7 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace CloudSync.Tool
 {
@@ -983,6 +984,9 @@ namespace CloudSync.Tool
 
         static void Main(string[] args)
         {
+            // Show unicode characters
+            Console.OutputEncoding = Encoding.UTF8;
+
             try
             {
                 Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions>(args)
