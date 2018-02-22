@@ -713,81 +713,15 @@ namespace CloudSync.Core
 
         public void List(ref Context context, string path, OutputConfig config)
         {
-            var nameCol = new List<string>();
-            int nameColMax = 0;
-
-            var typeCol = new List<string>();
-            int typeColMax = 0;
-
-            var sizeCol = new List<string>();
-            int sizeColMax = 0;
-
-            var timeCol = new List<string>();
-            int timeColMax = 0;
-
-            Dir dir = Dir.Open(ref context, path, false, false);
-            foreach (var de in dir)
+            var dir = Dir.Open(ref context, path, false, false);
+            var items = new List<ItemInfo>();
+            foreach (var kv in dir)
             {
-                nameCol.Add(de.Key);
-                nameColMax = Math.Max(de.Key.Length, nameColMax);
-                var isDir = de.Value.Type == DirEntryType.Dir;
-                var type = isDir ? "dir" : "file";
-                typeCol.Add(type);
-                typeColMax = Math.Max(type.Length, typeColMax);
-
-                var latest = de.Value.Versions[de.Value.Latest];
-
-                var size = isDir ? "---" : String.Format("{0:n0}", latest.Length);
-                sizeCol.Add(size);
-                sizeColMax = Math.Max(size.Length, sizeColMax);
-
-                var dt = new DateTime(latest.LastAccessTime);
-                string tt = dt.ToString("MMM ");
-                if (dt.Day < 10) tt += " " + dt.ToString("d");
-                else tt += dt.ToString("dd");
-
-                tt += " ";
-                tt += dt.ToString("HH:mm");
-                timeCol.Add(tt);
-                timeColMax = Math.Max(timeColMax, tt.Length);
-
-                // var tt = String.Format("{0:n0}", latest.LastAccessTime);
-                // sizeCol.Add(size);
-                // sizeColMax = Math.Max(size.Length, sizeColMax);
-
-                /*
-                var vid = de.Value.Latest - 1;
-                while(true)
-                {
-                    if (vid < 0) vid = de.Value.Versions.Count - 1;
-                    // var size = String.Format("{0:n0}", de.Value);
-                }
-                */
+                var version = kv.Value.Versions[kv.Value.Latest];
+                var isDir = (kv.Value.Type & DirEntryType.Dir) == DirEntryType.Dir;
+                items.Add(new ItemInfo { Name = kv.Key, Size = (long)version.Length, IsDir = isDir, LastWriteTime = new DateTime(version.LastWriteTime, DateTimeKind.Utc) });
             }
-
-            var nameColMin = 15;
-            var nameColSize = Math.Max(Math.Min(30, nameColMax), nameColMin);
-            for (var ii = 0; ii < nameCol.Count; ++ii)
-            {
-                StringBuilder sb = new StringBuilder(nameCol[ii]);
-                if (sb.Length > nameColSize) sb.Remove(nameColSize, sb.Length - nameColSize);
-                else if (sb.Length < nameColMin) sb.Append(' ', nameColMin - sb.Length);
-
-                sb.Append(' ', 1 + nameColSize - sb.Length);
-
-                if (typeCol[ii].Length < typeColMax) sb.Append(' ', typeColMax - typeCol[ii].Length);
-                sb.Append(typeCol[ii]);
-                sb.Append(' ');
-
-                sb.Append(' ', sizeColMax - sizeCol[ii].Length);
-                sb.Append(sizeCol[ii]);
-                sb.Append(' ');
-
-                sb.Append(timeCol[ii]);
-                sb.Append(' ');
-
-                Console.WriteLine(sb.ToString());
-            }
+            new ConsoleListOutputter(config).Output(items);
         }
 
         public void Remove(ref Context context, string path)
