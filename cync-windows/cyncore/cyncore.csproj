@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\cyncore\BaseDir.cs" Link="BaseDir.cs" />
+    <Compile Include="..\..\src\cyncore\CodecDll.cs" Link="CodecDll.cs" />
+    <Compile Include="..\..\src\cyncore\CodecHelper.cs" Link="CodecHelper.cs" />
+    <Compile Include="..\..\src\cyncore\CommandLineException.cs" Link="CommandLineException.cs" />
+    <Compile Include="..\..\src\cyncore\ComputeHashParams.cs" Link="ComputeHashParams.cs" />
+    <Compile Include="..\..\src\cyncore\ConsoleListOutputter.cs" Link="ConsoleListOutputter.cs" />
+    <Compile Include="..\..\src\cyncore\Context.cs" Link="Context.cs" />
+    <Compile Include="..\..\src\cyncore\EncodingConfig.cs" Link="EncodingConfig.cs" />
+    <Compile Include="..\..\src\cyncore\FileHeader.cs" Link="FileHeader.cs" />
+    <Compile Include="..\..\src\cyncore\FileId.cs" Link="FileId.cs" />
+    <Compile Include="..\..\src\cyncore\FileSystemTree.cs" Link="FileSystemTree.cs" />
+    <Compile Include="..\..\src\cyncore\GoogleDriveStorage.cs" Link="GoogleDriveStorage.cs" />
+    <Compile Include="..\..\src\cyncore\IDll.cs" Link="IDll.cs" />
+    <Compile Include="..\..\src\cyncore\IObjectTree.cs" Link="IObjectTree.cs" />
+    <Compile Include="..\..\src\cyncore\IStorage.cs" Link="IStorage.cs" />
+    <Compile Include="..\..\src\cyncore\ItemInfo.cs" Link="ItemInfo.cs" />
+    <Compile Include="..\..\src\cyncore\LexicalPath.cs" Link="LexicalPath.cs" />
+    <Compile Include="..\..\src\cyncore\LinuxDll.cs" Link="LinuxDll.cs" />
+    <Compile Include="..\..\src\cyncore\LocalStorage.cs" Link="LocalStorage.cs" />
+    <Compile Include="..\..\src\cyncore\LocalUtils.cs" Link="LocalUtils.cs" />
+    <Compile Include="..\..\src\cyncore\LogHelper.cs" Link="LogHelper.cs" />
+    <Compile Include="..\..\src\cyncore\ObjectTree.cs" Link="ObjectTree.cs" />
+    <Compile Include="..\..\src\cyncore\ObjectTreeException.cs" Link="ObjectTreeException.cs" />
+    <Compile Include="..\..\src\cyncore\OneDriveStorage.cs" Link="OneDriveStorage.cs" />
+    <Compile Include="..\..\src\cyncore\OSPath.cs" Link="OSPath.cs" />
+    <Compile Include="..\..\src\cyncore\OutputColumn.cs" Link="OutputColumn.cs" />
+    <Compile Include="..\..\src\cyncore\OutputConfig.cs" Link="OutputConfig.cs" />
+    <Compile Include="..\..\src\cyncore\PathException.cs" Link="PathException.cs" />
+    <Compile Include="..\..\src\cyncore\RepoConfig.cs" Link="RepoConfig.cs" />
+    <Compile Include="..\..\src\cyncore\SftpStorage.cs" Link="SftpStorage.cs" />
+    <Compile Include="..\..\src\cyncore\StorageException.cs" Link="StorageException.cs" />
+    <Compile Include="..\..\src\cyncore\WindowsDll.cs" Link="WindowsDll.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\src\cyncore\secret.json" Link="secret.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\src\cyncore\NLog.xsd" Link="NLog.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis" Version="1.32.2" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.32.2" />
+    <PackageReference Include="Google.Apis.Core" Version="1.32.2" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.32.2.1135" />
+    <PackageReference Include="Google.Protobuf" Version="3.5.1" />
+    <PackageReference Include="Microsoft.Graph" Version="1.7.0" />
+    <PackageReference Include="Microsoft.Graph.Core" Version="1.7.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="1.1.2-preview0008" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="NLog" Version="4.5.0-rc05" />
+    <PackageReference Include="NLog.Config" Version="4.5.0-rc05" />
+    <PackageReference Include="SSH.NET" Version="2016.1.0" />
+  </ItemGroup>
+
+</Project>
