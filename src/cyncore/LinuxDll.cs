@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CloudSync.Core
 {
@@ -12,10 +13,10 @@ namespace CloudSync.Core
         private const int RTLD_NOW = 2;
 
         [DllImport("libdl.so.2")]
-        private static extern IntPtr dlopen(string path, int flags);
+        private static extern IntPtr dlopen(byte [] path, int flags);
 
         [DllImport("libdl.so.2")]
-        private static extern IntPtr dlsym(IntPtr handle, string name);
+        private static extern IntPtr dlsym(IntPtr handle, byte [] name);
 
         [DllImport("libdl.so.2")]
         private static extern int dlclose(IntPtr handle);
@@ -25,8 +26,9 @@ namespace CloudSync.Core
 
         public LinuxDll(string path)
         {
+            var encoding = new UTF8Encoding();
             dlerror();
-            var _handle = dlopen(path, RTLD_NOW);
+            _handle = dlopen(encoding.GetBytes(path), RTLD_NOW);
             if (_handle == IntPtr.Zero)
                 throw new FileNotFoundException($"Failed to load {path}");
         }
@@ -39,8 +41,9 @@ namespace CloudSync.Core
 
         public Delegate GetDelegate<T>(string name)
         {
+            var encoding = new UTF8Encoding();
             dlerror();
-            var result = dlsym(_handle, name);
+            var result = dlsym(_handle, encoding.GetBytes(name));
             if (result == IntPtr.Zero)
                 throw new Exception($"Error loading dll '{name}' functionality.");
             return Marshal.GetDelegateForFunctionPointer(result, typeof(T));

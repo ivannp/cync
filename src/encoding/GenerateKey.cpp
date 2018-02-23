@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <iostream>
 
 #include "cryptopp/osrng.h"
 
@@ -11,11 +12,11 @@ extern "C"
 {
    DLL_API void GenerateKey(unsigned char * key, unsigned keyLen)
    {
-      OS_GenerateRandomBlock(true, key, keyLen);
+       OS_GenerateRandomBlock(false, key, keyLen);
    }
 
    DLL_API void GenerateRandomBlock(unsigned char * buf, unsigned bufLen)
    {
-       OS_GenerateRandomBlock(true, buf, bufLen);
+       OS_GenerateRandomBlock(false, buf, bufLen);
    }
 }

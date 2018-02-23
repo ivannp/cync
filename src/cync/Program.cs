@@ -2,7 +2,6 @@
 using ColoredConsole;
 using CommandLine;
 using Newtonsoft.Json.Linq;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,8 +11,6 @@ namespace CloudSync.Tool
 {
     class Program
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-
         [Verb("init", HelpText = "Initializes a cync repository.")]
         class InitOptions
         {
@@ -1119,13 +1116,13 @@ namespace CloudSync.Tool
                     .WithParsed<MoveOptions>(opts => CmdMove(opts))
                     .WithParsed<VerifyOptions>(opts => CmdVerify(opts))
                     .WithParsed<MkdirOptions>(opts => CmdMkdir(opts))
-                    .WithNotParsed(errs => { foreach (var e in errs) _logger.Fatal($"cync encountered a fatal error: {e.ToString()}"); });
+                    .WithNotParsed(errs => { foreach (var e in errs) ColorConsole.WriteLine($"cync encountered a fatal error: {e.ToString()}".Red()); });
             }
             catch (Exception ee)
             {
-                _logger.Fatal(ee, $"cync encountered a fatal error: {ee.ToString()}");
+                ColorConsole.WriteLine($"cync encountered a fatal error: {ee.ToString()}".Red());
                 if(ee.InnerException != null)
-                    _logger.Fatal(ee, $"cync encountered a fatal error: {ee.ToString()}");
+                    ColorConsole.WriteLine($"cync encountered a fatal error: {ee.ToString()}".Red());
             }
         }
     }

@@ -47,3 +47,9 @@ cync-windows/unitests/bin/
 cync-windows/unitests/obj/
 cync-windows/unitests/x64/
 cync-windows/x64/
+cync-linux/cync/bin/
+cync-linux/cync/obj/
+cync-linux/cyncore/bin/
+cync-linux/cyncore/obj/
+cync-linux/build-release
+cync-linux/build-debug
