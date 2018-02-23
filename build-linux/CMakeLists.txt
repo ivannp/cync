@@ -13,3 +13,5 @@ ADD_LIBRARY(
     ../encoding/FileHeader.pb.h
     ../encoding/GenerateKey.cpp
     ../encoding/DllApi.h)
+TARGET_LINK_LIBRARIES(encoding libprotobuf.so)
+TARGET_LINK_LIBRARIES(encoding libcryptopp.so)
