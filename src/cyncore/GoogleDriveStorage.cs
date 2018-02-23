@@ -13,6 +13,8 @@ namespace CloudSync.Core
 {
     public class GoogleDriveStorage : IStorage
     {
+        const int RETRIES = 4;
+
         private static Logger _logger = LogManager.GetCurrentClassLogger();
 
         private readonly string _rootPath;
@@ -143,14 +145,49 @@ namespace CloudSync.Core
             string id = GetId(src);
             var req = service.Files.Get(id);
             LocalPath res = new LocalPath(Path.GetTempFileName());
-            using (var stream = File.OpenWrite(res.Path))
+            var downloaded = false;
+            for(var i = 0; i < RETRIES && !downloaded; ++i)
             {
-                req.Download(stream);
+                try
+                {
+                    using (var stream = File.OpenWrite(res.Path))
+                        req.Download(stream);
+                    downloaded = true;
+                    break;
+                }
+                catch(Exception)
+                {
+                    LocalUtils.TryDeleteFile(res.Path);
+                }
             }
+            if (!downloaded)
+                throw new StorageException($"Failed to download '{src}' ({RETRIES} attempts).");
             return res;
         }
 
         public void Download(string src, string dest)
+        {
+            var downloaded = false;
+            for(var i = 0; i < RETRIES && !downloaded; ++i)
+            {
+                try
+                {
+                    DownloadAction(src, dest);
+                    downloaded = true;
+                    break;
+                }
+                catch (Exception)
+                {
+                }
+
+                LocalUtils.TryDeleteFile(dest);
+            }
+
+            if (!downloaded)
+                throw new StorageException($"Failed to download '{src}' ({RETRIES} attempts).");
+        }
+
+        private void DownloadAction(string src, string dest)
         {
             src = LexicalPath.Combine(_rootPath, src);
             string id = GetId(src);
@@ -190,6 +227,24 @@ namespace CloudSync.Core
         }
 
         public void Upload(string src, string dest, bool finalizeLocal = true)
+        {
+            var uploaded = false;
+            for(var i = 0; i < RETRIES; ++i)
+            {
+                try
+                {
+                    UploadAction(src, dest, finalizeLocal);
+                    uploaded = true;
+                    break;
+                }
+                catch (Exception)
+                { }
+            }
+            if (!uploaded)
+                throw new StorageException($"Failed to upload to {dest}");
+        }
+
+        private void UploadAction(string src, string dest, bool finalizeLocal = true)
         {
             dest = LexicalPath.Combine(_rootPath, dest);
             var folder = LexicalPath.GetDirectoryName(dest);

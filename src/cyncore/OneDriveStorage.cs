@@ -13,6 +13,8 @@ namespace CloudSync.Core
 {
     public class OneDriveStorage : IStorage
     {
+        const int RETRIES = 4;
+
         private static NLog.Logger _logger = LogManager.GetCurrentClassLogger();
 
         private const string _cacheFileName = "onedrive.cache";
@@ -91,11 +93,26 @@ namespace CloudSync.Core
             src = EncodePath(LexicalPath.Combine(_rootPath, src));
             LocalPath res = new LocalPath(Path.GetTempFileName());
 
-            using (var stream = _graphServiceClient.Drive.Root.ItemWithPath(src).Content.Request().GetAsync().Result)
-            using (var outputStream = System.IO.File.OpenWrite(res.Path))
+            var downloaded = false;
+            for(var i = 0; i < RETRIES; ++i)
             {
-                stream.CopyTo(outputStream);
+                try
+                {
+                    using (var stream = _graphServiceClient.Drive.Root.ItemWithPath(src).Content.Request().GetAsync().Result)
+                    using (var outputStream = System.IO.File.OpenWrite(res.Path))
+                        stream.CopyTo(outputStream);
+
+                    downloaded = true;
+                    break;
+                }
+                catch(Exception)
+                {
+                    LocalUtils.TryDeleteFile(res.Path);
+                }
             }
+
+            if (!downloaded)
+                throw new StorageException($"Failed to download '{src}' ({RETRIES} attempts).");
 
             return res;
         }
@@ -135,21 +152,36 @@ namespace CloudSync.Core
 
             dest = EncodePath(dest);
 
-            using (var stream = System.IO.File.OpenRead(src))
+            var uploaded = false;
+            for(var i = 0; i < RETRIES && !uploaded; ++i)
             {
-                if(fileSize > 1024*1024)
+                try
                 {
-                    // TODO(ivannp) A progress indicator can be added according to:
-                    //      https://github.com/OneDrive/onedrive-sdk-csharp/blob/master/docs/chunked-uploads.md, 
-                    var session = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
-                    var provider = new ChunkedUploadProvider(session, _graphServiceClient, stream);
-                    item = provider.UploadAsync().Result;
+                    using (var stream = System.IO.File.OpenRead(src))
+                    {
+                        if (fileSize > 1024 * 1024)
+                        {
+                            // TODO(ivannp) A progress indicator can be added according to:
+                            //      https://github.com/OneDrive/onedrive-sdk-csharp/blob/master/docs/chunked-uploads.md, 
+                            var session = _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").CreateUploadSession().Request().PostAsync().Result;
+                            var provider = new ChunkedUploadProvider(session, _graphServiceClient, stream);
+                            item = provider.UploadAsync().Result;
+                        }
+                        else
+                        {
+                            _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").Content.Request().PutAsync<DriveItem>(stream).Wait();
+                        }
+                    }
+                    uploaded = true;
+                    break;
                 }
-                else
+                catch(Exception)
                 {
-                    _graphServiceClient.Drive.Root.ItemWithPath($"{dest}").Content.Request().PutAsync<DriveItem>(stream).Wait();
                 }
             }
+
+            if (!uploaded)
+                throw new StorageException($"Failed to upload to '{dest}' ({RETRIES} attempts).");
         }
 
         public IEnumerable<ItemInfo> ListDirectory(string path)

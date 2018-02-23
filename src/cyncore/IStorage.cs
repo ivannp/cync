@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -19,7 +20,13 @@ namespace CloudSync.Core
         {
             if(DeleteOnExit && File.Exists(Path))
             {
-                File.Delete(Path);
+                try
+                {
+                    File.Delete(Path);
+                }
+                catch(Exception)
+                {
+                }
             }
         }
     }

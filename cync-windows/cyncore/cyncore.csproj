@@ -25,6 +25,7 @@
     <Compile Include="..\..\src\cyncore\LexicalPath.cs" Link="LexicalPath.cs" />
     <Compile Include="..\..\src\cyncore\LinuxDll.cs" Link="LinuxDll.cs" />
     <Compile Include="..\..\src\cyncore\LocalStorage.cs" Link="LocalStorage.cs" />
+    <Compile Include="..\..\src\cyncore\LocalUtils.cs" Link="LocalUtils.cs" />
     <Compile Include="..\..\src\cyncore\LogHelper.cs" Link="LogHelper.cs" />
     <Compile Include="..\..\src\cyncore\ObjectTree.cs" Link="ObjectTree.cs" />
     <Compile Include="..\..\src\cyncore\ObjectTreeException.cs" Link="ObjectTreeException.cs" />
@@ -35,6 +36,7 @@
     <Compile Include="..\..\src\cyncore\PathException.cs" Link="PathException.cs" />
     <Compile Include="..\..\src\cyncore\RepoConfig.cs" Link="RepoConfig.cs" />
     <Compile Include="..\..\src\cyncore\SftpStorage.cs" Link="SftpStorage.cs" />
+    <Compile Include="..\..\src\cyncore\StorageException.cs" Link="StorageException.cs" />
     <Compile Include="..\..\src\cyncore\WindowsDll.cs" Link="WindowsDll.cs" />
   </ItemGroup>
 
