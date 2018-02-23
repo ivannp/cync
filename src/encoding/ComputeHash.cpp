@@ -5,6 +5,9 @@
 #include "cryptopp/filters.h"
 #include "cryptopp/sha.h"
 
+#define DLL_API_EXPORTS
+#include "DllApi.h"
+
 #include "ComputeHashParams.pb.h"
 
 using namespace std;
@@ -12,7 +15,7 @@ using namespace CryptoPP;
 
 extern "C"
 {
-    __declspec(dllexport) void ComputeHash(const char * buf, unsigned bufLen, char * bufOut, unsigned bufOutLen)
+    DLL_API void ComputeHash(const char * buf, unsigned bufLen, char * bufOut, unsigned bufOutLen)
     {
         // Deserialize the API blob
         sotcore::ComputeHashParams params;
