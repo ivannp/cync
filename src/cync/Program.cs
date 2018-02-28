@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace CloudSync.Tool
@@ -88,8 +89,8 @@ namespace CloudSync.Tool
             [Option('v', "verbose", Default = false, HelpText = "Verbose mode.")]
             public bool Verbose { get; set; }
 
-            [Value(0, Min = 0, Max = 2)]
-            public IList<string> Items { get; set; }
+            [Value(0, Min = 2, Max = 2)]
+            public IEnumerable<string> Items { get; set; }
         }
 
         [Verb("decode", HelpText = "Decode a single local file.")]
@@ -104,8 +105,8 @@ namespace CloudSync.Tool
             [Option('v', "verbose", Default = false, HelpText = "Verbose mode.")]
             public bool Verbose { get; set; }
 
-            [Value(0, Min = 0, Max = 2)]
-            public IList<string> Items { get; set; }
+            [Value(0, Min = 2, Max = 2)]
+            public IEnumerable<string> Items { get; set; }
         }
 
         [Verb("push", HelpText = "Push files and directories to the repository.")]
@@ -382,6 +383,11 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(io.KeyFile));
                 jcfg["KeyFile"] = OSPath.ToSlash(Path.GetFullPath(io.KeyFile));
+            }
+            else
+            {
+                context.ErrorWriteLine($"Currently --key-file is the only supported authentication and is required. A key can be generated via 'cync keygen'");
+                return;
             }
 
             tree.CreateRoot(ref context);
@@ -989,8 +995,10 @@ namespace CloudSync.Tool
                 context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
             }
 
+            var items = options.Items.ToList();
+
             byte[] hash = new byte[256];
-            CodecHelper.EncodeFile(ref context, options.Items[0], options.Items[1], ref hash);
+            CodecHelper.EncodeFile(ref context, items[0], items[1], ref hash);
         }
 
         static void CmdDecode(DecodeOptions options)
@@ -1004,8 +1012,10 @@ namespace CloudSync.Tool
                 context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
             }
 
+            var items = options.Items.ToList();
+
             byte[] hash = new byte[256];
-            CodecHelper.DecodeFile(ref context, options.Items[0], options.Items[1], ref hash);
+            CodecHelper.DecodeFile(ref context, items[0], items[1], ref hash);
         }
 
         static void CmdKeyGen(KeyGenOptions o)

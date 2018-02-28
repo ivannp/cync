@@ -5,32 +5,6 @@ using System.IO;
 
 namespace CloudSync.Core
 {
-    public class LocalPath
-    {
-        public string Path { get; set; }
-        public bool DeleteOnExit { get; set; }
-
-        public LocalPath(string path, bool deleteOnExit = true)
-        {
-            Path = path;
-            DeleteOnExit = deleteOnExit;
-        }
-
-        ~LocalPath()
-        {
-            if(DeleteOnExit && File.Exists(Path))
-            {
-                try
-                {
-                    File.Delete(Path);
-                }
-                catch(Exception)
-                {
-                }
-            }
-        }
-    }
-
     public interface IStorage
     {
         LocalPath Download(string src);

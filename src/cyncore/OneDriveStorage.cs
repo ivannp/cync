@@ -91,7 +91,7 @@ namespace CloudSync.Core
         public LocalPath Download(string src)
         {
             src = EncodePath(LexicalPath.Combine(_rootPath, src));
-            LocalPath res = new LocalPath(Path.GetTempFileName());
+            var res = new LocalPath(LocalUtils.GetTempFileName());
 
             var downloaded = false;
             for(var i = 0; i < RETRIES; ++i)
@@ -186,23 +186,31 @@ namespace CloudSync.Core
 
         public IEnumerable<ItemInfo> ListDirectory(string path)
         {
-            path = LexicalPath.Clean(path);
-
-            var expandValue = "children";
+            // TODO(ivannp) Increase the page list to max. Not sure what the max is. :)
+            path = LexicalPath.Combine(_rootPath, LexicalPath.Clean(path));
 
             var folder = _graphServiceClient.Drive.Root;
             if (path != "/")
                 folder = folder.ItemWithPath(path);
-            var driveItem = folder
-                .Request()
-                .Expand(expandValue)
-                .GetAsync()
-                .Result;
 
             var res = new List<ItemInfo>();
 
-            foreach(var item in driveItem.Children)
-                res.Add(new ItemInfo { Name = item.Name, Size = item.Size, IsDir = item.Folder != null, Id = item.Id, LastWriteTime = item.LastModifiedDateTime.Value.DateTime });
+            var collection = folder
+                .Children
+                .Request()
+                .GetAsync()
+                .Result;
+
+            while (true)
+            {
+                foreach (var item in collection.CurrentPage)
+                    res.Add(new ItemInfo { Name = item.Name, Size = item.Size, IsDir = item.Folder != null, Id = item.Id, LastWriteTime = item.LastModifiedDateTime.Value.DateTime });
+
+                if (collection.NextPageRequest == null)
+                    break;
+
+                collection = collection.NextPageRequest.GetAsync().Result;
+            }
 
             return res;
         }

@@ -77,7 +77,7 @@ namespace CloudSync.Core
         public LocalPath Download(string src)
         {
             var path = string.IsNullOrWhiteSpace(_rootPath) ? src : LexicalPath.Combine(_rootPath, src);
-            LocalPath res = new LocalPath(Path.GetTempFileName());
+            LocalPath res = new LocalPath(LocalUtils.GetTempFileName());
             using (var stream = File.OpenWrite(res.Path))
                 _client.DownloadFile(path, stream);
             return res;

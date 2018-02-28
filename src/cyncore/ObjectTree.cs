@@ -40,27 +40,28 @@ namespace CloudSync.Core
             BaseDir baseDir = new Core.BaseDir { Eyecatcher = EyeCatcher };
 
             // Serialize to a temp file
-            var path = Path.GetTempFileName();
-            var encodedPath = Path.GetTempFileName();
-            FileStream output = File.OpenWrite(path);
+            using (var path = new LocalPath(LocalUtils.GetTempFileName(suffix: ".dir")))
+            using (var encodedPath = new LocalPath(LocalUtils.GetTempFileName(suffix: ".edir")))
+            {
+                FileStream output = File.OpenWrite(path.Path);
 
-            // Write the directory to a file
-            baseDir.WriteTo(output);
-            output.Close();
+                // Write the directory to a file
+                baseDir.WriteTo(output);
+                output.Close();
 
-            byte[] hash = new byte[32];
-            CodecHelper.EncodeFile(ref context, path, encodedPath, ref hash);
+                byte[] hash = new byte[32];
+                CodecHelper.EncodeFile(ref context, path.Path, encodedPath.Path, ref hash);
 
-            // Upload the file. It's removed by Upload.
-            Upload(ref context, encodedPath, RootId);
-
-            // Remove the other temp file.
-            File.Delete(path);
+                // Upload the file. It's removed by Upload.
+                Upload(ref context, encodedPath.Path, RootId);
+            }
 
             // Write the config
-            path = Path.GetTempFileName();
-            context.RepoCfg.Save(path);
-            Upload(ref context, path, RepoConfig.ConfigFile);
+            using (var configPath = new LocalPath(LocalUtils.GetTempFileName(suffix: ".config")))
+            {
+                context.RepoCfg.Save(configPath.Path);
+                Upload(ref context, configPath.Path, RepoConfig.ConfigFile);
+            }
         }
 
         class Dir
@@ -167,52 +168,49 @@ namespace CloudSync.Core
             public void Read()
             {
                 // Download the directory file
-                var localPath = context.Storage.Download(fid.FullPath);
-
-                // Read the file header
-                //FileHeader fileHeader;
-                //using (Stream ss = File.OpenRead(localPath.Path))
-                //{
-                //    MessageParser<FileHeader> parser = new MessageParser<FileHeader>(() => new FileHeader());
-                //    fileHeader = parser.ParseFrom(ss);
-                //}
-
-                // Use a temp file to decode the content
-                var decodedPath = Path.GetTempFileName();
-
-                byte[] hash = new byte[32];
-                CodecHelper.DecodeFile(ref context, localPath.Path, decodedPath, ref hash);
-
-                // Read the directory content
-                using (Stream ss = OpenTempFileForReading(decodedPath))
+                using (var localPath = context.Storage.Download(fid.FullPath))
+                using (var decodedPath = new LocalPath(LocalUtils.GetTempFileName(suffix: ".dir")))
                 {
-                    MessageParser<BaseDir> parser = new MessageParser<BaseDir>(() => new BaseDir());
-                    data = parser.ParseFrom(ss);
+                    byte[] hash = new byte[32];
+                    CodecHelper.DecodeFile(ref context, localPath.Path, decodedPath.Path, ref hash);
+
+                    // Read the directory content
+                    using (Stream ss = OpenTempFileForReading(decodedPath.Path))
+                    {
+                        MessageParser<BaseDir> parser = new MessageParser<BaseDir>(() => new BaseDir());
+                        data = parser.ParseFrom(ss);
+                    }
                 }
             }
 
             public void Write()
             {
-                var rawContent = new LocalPath(Path.GetTempFileName());
-                using (FileStream fs = File.OpenWrite(rawContent.Path))
+                using (var rawContent = new LocalPath(LocalUtils.GetTempFileName(suffix: ".dir")))
                 {
-                    // Serialize the content
-                    data.WriteTo(fs);
+                    using (FileStream fs = File.OpenWrite(rawContent.Path))
+                    {
+                        // Serialize the content
+                        data.WriteTo(fs);
+                    }
+
+                    if (!File.Exists(rawContent.Path))
+                        throw new Exception($"The temporary file {rawContent.Path} disappeared!");
+
+                    // Use another temp file to encode the content
+                    using (var encodedPath = new LocalPath(LocalUtils.GetTempFileName(prefix: "cync", suffix: ".edir")))
+                    {
+                        byte[] hash = new byte[32];
+                        CodecHelper.EncodeFile(ref context, rawContent.Path, encodedPath.Path, ref hash);
+
+                        // Make sure the target directory exists
+                        context.Storage.CreateDirectory(fid.DirectoryPath);
+
+                        // Upload the encoded file
+                        context.Storage.Upload(encodedPath.Path, fid.FullPath, true);
+
+                        dirty = false;
+                    }
                 }
-
-                // Use another temp file to encode the content
-                var encodedPath = Path.GetTempFileName();
-
-                byte[] hash = new byte[32];
-                CodecHelper.EncodeFile(ref context, rawContent.Path, encodedPath, ref hash);
-
-                // Make sure the target directory exists
-                context.Storage.CreateDirectory(fid.DirectoryPath);
-
-                // Upload the encoded file
-                context.Storage.Upload(encodedPath, fid.FullPath, true);
-
-                dirty = false;
             }
 
             private FileStream OpenTempFileForWriting(string path)
@@ -303,9 +301,7 @@ namespace CloudSync.Core
                     if (File.Exists(dest))
                     {
                         if (File.GetLastWriteTimeUtc(dest).Ticks > ve.LastWriteTime)
-                        {
                             return false;
-                        }
 
                         var fi = new FileInfo(dest);
                         if ((ulong)fi.Length == ve.Length)
@@ -344,9 +340,7 @@ namespace CloudSync.Core
             public bool PushFile(string src, string dest, bool force)
             {
                 if (dest == null || dest.Length == 0)
-                {
                     dest = Path.GetFileName(src);
-                }
 
                 DirEntry de;
                 FileInfo fi = new FileInfo(src);
@@ -393,9 +387,7 @@ namespace CloudSync.Core
                     }
 
                     if (!changeDetected)
-                    {
                         return false;
-                    }
                 }
                 else
                 {
@@ -403,46 +395,53 @@ namespace CloudSync.Core
                     AddEntry(dest, de);
                 }
 
+                VersionEntry versionToRemove = null;
+
                 // Encode the file to a temp location
-                var pp = Path.GetTempFileName();
-                byte[] hash = new byte[32];
-                CodecHelper.EncodeFile(ref context, src, pp, ref hash);
+                using (var lp = new LocalPath(LocalUtils.GetTempFileName()))
+                {
+                    var hash = new byte[32];
+                    CodecHelper.EncodeFile(ref context, src, lp.Path, ref hash);
 
-                var newVersionEntry = new VersionEntry {
+                    var newVersionEntry = new VersionEntry
+                    {
                         Uuid = Guid.NewGuid().ToString("N"),
-                        LastWriteTime = fi.LastWriteTimeUtc.Ticks, LastAccessTime = fi.LastAccessTimeUtc.Ticks, CreationTime = fi.CreationTimeUtc.Ticks,
-                        Attributes = (int)fi.Attributes, Length = (ulong)fi.Length };
-                newVersionEntry.Checksum = ByteString.CopyFrom(hash);
+                        LastWriteTime = fi.LastWriteTimeUtc.Ticks,
+                        LastAccessTime = fi.LastAccessTimeUtc.Ticks,
+                        CreationTime = fi.CreationTimeUtc.Ticks,
+                        Attributes = (int)fi.Attributes,
+                        Length = (ulong)fi.Length
+                    };
+                    newVersionEntry.Checksum = ByteString.CopyFrom(hash);
 
-                VersionEntry savedVersionEntry = null;
-                if(de.Versions.Count == 0)
-                {
-                    // The very first version addition
-                    de.Versions.Add(newVersionEntry);
-                    Debug.Assert(de.Latest == 0);
-                }
-                else if (de.Versions.Count > 0 && de.Versions.Count >= context.RepoCfg.MaxVersions)
-                {
-                    de.Latest = (de.Latest + 1) % context.RepoCfg.MaxVersions;
-                    savedVersionEntry = de.Versions[de.Latest];
-                    de.Versions[de.Latest] = newVersionEntry;
-                }
-                else
-                {
-                    de.Versions.Add(newVersionEntry);
-                    ++de.Latest;
-                }
+                    if (de.Versions.Count == 0)
+                    {
+                        // The very first version addition
+                        de.Versions.Add(newVersionEntry);
+                        Debug.Assert(de.Latest == 0);
+                    }
+                    else if (de.Versions.Count > 0 && de.Versions.Count >= context.RepoCfg.MaxVersions)
+                    {
+                        de.Latest = (de.Latest + 1) % context.RepoCfg.MaxVersions;
+                        versionToRemove = de.Versions[de.Latest];
+                        de.Versions[de.Latest] = newVersionEntry;
+                    }
+                    else
+                    {
+                        de.Versions.Add(newVersionEntry);
+                        ++de.Latest;
+                    }
 
-                // The in-memory directory is updated, perform the file operations
-                FileId fid = new FileId(newVersionEntry.Uuid);
-                context.Storage.CreateDirectory(fid.DirectoryPath);
-                context.Storage.Upload(pp, fid.FullPath);
+                    // The in-memory directory is updated, perform the file operations
+                    FileId fid = new FileId(newVersionEntry.Uuid);
+                    context.Storage.CreateDirectory(fid.DirectoryPath);
+                    context.Storage.Upload(lp.Path, fid.FullPath);
+                }
 
                 // Remove the previous version if necessary
-                if (savedVersionEntry != null)
-                {
-                    context.Storage.RemoveFile((new FileId(savedVersionEntry.Uuid)).FullPath);
-                }
+                if (versionToRemove != null)
+                    context.Storage.RemoveFile((new FileId(versionToRemove.Uuid)).FullPath);
+
                 Write();
 
                 return true;

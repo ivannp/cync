@@ -220,7 +220,7 @@ extern "C"
         cs->AddDefaultRoute(hf);
 		ifstream ifs;
 		OpenInputFileStream(cfg.src().c_str(), ios::in | ios::binary, ifs);
-        FileSource ss(ifs, true, cs);
+		FileSource ss(ifs, true, cs);
     }
 
     DLL_API void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)

@@ -31,8 +31,8 @@ namespace CloudSync.Core
 
         public void InitRepoFromStorage()
         {
-            var localPath = Storage.Download(RepoConfig.ConfigFile);
-            RepoCfg = RepoConfig.Load(localPath.Path);
+            using (var localPath = Storage.Download(RepoConfig.ConfigFile))
+                RepoCfg = RepoConfig.Load(localPath.Path);
         }
 
         public static Context CreateLocal(string path, int compressionLevel = 5, int maxVersions = 4, string ciphers = "aes")

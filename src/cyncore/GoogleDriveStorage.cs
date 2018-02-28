@@ -144,7 +144,7 @@ namespace CloudSync.Core
             src = LexicalPath.Combine(_rootPath, src);
             string id = GetId(src);
             var req = service.Files.Get(id);
-            LocalPath res = new LocalPath(Path.GetTempFileName());
+            LocalPath res = new LocalPath(LocalUtils.GetTempFileName());
             var downloaded = false;
             for(var i = 0; i < RETRIES && !downloaded; ++i)
             {
