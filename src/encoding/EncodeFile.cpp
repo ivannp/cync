@@ -119,7 +119,8 @@ extern "C"
         }
 
         // We use an output stream so that we can write the header first.
-        ofstream ofs(cfg.dest().c_str(), ios::binary | ios::trunc);
+		ofstream ofs;
+		OpenOutputFileStream(cfg.dest().c_str(), ios::binary | ios::out | ios::trunc, ofs);
         FileSink * fileSink = new FileSink(ofs);
 
         BufferedTransformation * lastTransform = fileSink;
@@ -211,7 +212,10 @@ extern "C"
         fileHeader.SerializeToString(&bb);
         uint32_t size = (uint32_t)bb.size();
         ofs.write((char *)&size, 4);
-        ofs.write(&bb[0], bb.size());
+		if (size > 0)
+		{
+			ofs.write(&bb[0], bb.size());
+		}
 
         Deflator compression(lastTransform, cfg.compression_level());
         SHA256 sha256;
@@ -239,8 +243,11 @@ extern "C"
         uint32_t size;
         ifs.read((char *)&size, 4);
         string bb;
-        bb.resize(size);
-        ifs.read(&bb[0], size);
+		if (size > 0)
+		{
+			bb.resize(size);
+			ifs.read(&bb[0], size);
+		}
         sotcore::FileHeader fileHeader;
         fileHeader.ParseFromString(bb);
 
@@ -248,10 +255,13 @@ extern "C"
 		OpenOutputFileStream(cfg.dest().c_str(), ios::binary | ios::out | ios::trunc, ofs);
 
         FileSink fileSink(ofs);
-        ArraySink shaSink((byte *)hash, hashLen);
+        ArraySink * shaSink = new ArraySink((byte *)hash, hashLen);
+
+		SHA256 sha256;
+		HashFilter sha256Filter(sha256, shaSink);
 
         ChannelSwitch * cs = new ChannelSwitch(fileSink);
-        cs->AddDefaultRoute(shaSink);
+        cs->AddDefaultRoute(sha256Filter);
 
         Inflator decompression(cs);
 
