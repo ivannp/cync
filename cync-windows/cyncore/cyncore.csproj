@@ -34,6 +34,7 @@
     <Compile Include="..\..\src\cyncore\OutputColumn.cs" Link="OutputColumn.cs" />
     <Compile Include="..\..\src\cyncore\OutputConfig.cs" Link="OutputConfig.cs" />
     <Compile Include="..\..\src\cyncore\PathException.cs" Link="PathException.cs" />
+    <Compile Include="..\..\src\cyncore\ProgressBar.cs" Link="ProgressBar.cs" />
     <Compile Include="..\..\src\cyncore\RepoConfig.cs" Link="RepoConfig.cs" />
     <Compile Include="..\..\src\cyncore\SftpStorage.cs" Link="SftpStorage.cs" />
     <Compile Include="..\..\src\cyncore\StorageException.cs" Link="StorageException.cs" />

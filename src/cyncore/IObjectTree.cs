@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CloudSync.Core
+﻿namespace CloudSync.Core
 {
     public interface IObjectTree
     {

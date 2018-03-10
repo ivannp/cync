@@ -18,6 +18,9 @@ namespace CloudSync.Core
         public Action<string> ErrorWriteLine { get; set; } = (s) => Console.WriteLine(s);
         public Action<string> InfoWriteLine { get; set; } = (s) => Console.WriteLine(s);
 
+        public bool Verbose { get; set; } = false;
+        public bool IgnoreErrors { get; set; } = false;
+
         public void InitEncodingConfig(bool force = false)
         {
             if(force || EncodingCfg == null)

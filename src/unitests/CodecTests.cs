@@ -1,6 +1,7 @@
 ﻿using CloudSync.Core;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace CloudSync.UnitTests
@@ -24,6 +25,17 @@ namespace CloudSync.UnitTests
                 }
             }
             return true;
+        }
+
+        private void TryDeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch(Exception)
+            { }
         }
 
         private bool CodecRun(Context context, string raw, string encoded, string decoded)
@@ -87,6 +99,53 @@ namespace CloudSync.UnitTests
             // Test just storing
             context.RepoCfg = new RepoConfig(0, 1, "none");
             Assert.IsTrue(CodecRun(context, rawFile.Path, encodedFile.Path, decodedFile.Path));
+        }
+
+        [Ignore]
+        [TestMethod]
+        public void TestDirectoryEncryption()
+        {
+            var sourceDir = @"c:\digital";
+
+            var cur = Directory.GetCurrentDirectory();
+
+            var random = new Random();
+            byte[] keys = new byte[3 * 32];
+            random.NextBytes(keys);
+
+            var queue = new Queue<string>();
+            queue.Enqueue(sourceDir);
+
+            var sourcePath = "source_file";
+            var encodedPath = "encoded_file";
+            var decodedPath = "decoded_file";
+
+            // Setup a context
+            Context context = new Context { };
+            context.Key = keys;
+            context.RepoCfg = new RepoConfig(6, 1, "serpent,twofish,aes");
+
+            while (queue.Count > 0)
+            {
+                var dirPath = queue.Dequeue();
+                foreach (var item in Directory.EnumerateDirectories(dirPath))
+                {
+                    queue.Enqueue(item);
+                }
+                foreach (var item in Directory.EnumerateFiles(dirPath))
+                {
+                    TryDeleteFile(sourcePath);
+                    TryDeleteFile(encodedPath);
+                    TryDeleteFile(decodedPath);
+
+                    File.Copy(item, sourcePath);
+                    Assert.IsTrue(CodecRun(context, sourcePath, encodedPath, decodedPath));
+                }
+            }
+
+            TryDeleteFile(sourcePath);
+            TryDeleteFile(encodedPath);
+            TryDeleteFile(decodedPath);
         }
     }
 }

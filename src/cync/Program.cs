@@ -4,8 +4,10 @@ using CommandLine;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace CloudSync.Tool
@@ -238,6 +240,9 @@ namespace CloudSync.Tool
             [Option('v', "verbose", Default = false, HelpText = "Verbose.")]
             public bool Verbose { get; set; }
 
+            [Option("ignore-errors", Default = false, HelpText = "Ignore errors. Useful when fixing file system problems identified by the verify command.")]
+            public bool IgnoreErrors { get; set; }
+
             [Value(0, Min = 1, Required = true)]
             public IEnumerable<string> Items { get; set; }
         }
@@ -338,6 +343,22 @@ namespace CloudSync.Tool
             public IEnumerable<string> Items { get; set; }
         }
 
+        [Verb("test-codec", HelpText = "Tests the coded (encode, decode, compare) on all files in a directory.")]
+        class TestCodecOptions
+        {
+            [Option("key-file", Default = null, HelpText = "The user provided key file.")]
+            public string KeyFile { get; set; }
+
+            [Option('c', "ciphers", Default = "aes", HelpText = "The encryption ciphers used.")]
+            public string Ciphers { get; set; }
+
+            [Option("compression-level", Default = 5, HelpText = "The compression level [0-9].")]
+            public int CompressionLevel { get; set; }
+
+            [Value(0, Min = 1, Required = true)]
+            public IEnumerable<string> Items { get; set; }
+        }
+
         static void CmdInit(InitOptions io)
         {
             string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync");
@@ -389,6 +410,8 @@ namespace CloudSync.Tool
                 context.ErrorWriteLine($"Currently --key-file is the only supported authentication and is required. A key can be generated via 'cync keygen'");
                 return;
             }
+
+            context.Verbose = io.Verbose;
 
             tree.CreateRoot(ref context);
 
@@ -486,6 +509,8 @@ namespace CloudSync.Tool
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
 
+            context.Verbose = options.Verbose;
+
             if (options.UseChecksums)
             {
                 context.UseChecksums = true;
@@ -575,6 +600,8 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+
+            context.Verbose = options.Verbose;
 
             tree.Pull(ref context, src, dest);
 
@@ -749,6 +776,8 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+
+            context.IgnoreErrors = options.IgnoreErrors;
 
             foreach(var item in options.Items)
                 tree.Remove(ref context, item);
@@ -1018,6 +1047,173 @@ namespace CloudSync.Tool
             CodecHelper.DecodeFile(ref context, items[0], items[1], ref hash);
         }
 
+        static void CmdTestCodec(TestCodecOptions io)
+        {
+            var context = DefaultContext(false);
+            context.RepoCfg = new RepoConfig(io.CompressionLevel, 1, io.Ciphers);
+
+            if (io.KeyFile != null)
+            {
+                context.Key = Convert.FromBase64String(File.ReadAllText(io.KeyFile));
+            }
+            else
+            {
+                context.ErrorWriteLine($"--key-file is required.");
+                return;
+            }
+
+            var queue = new Queue<string>();
+            foreach (var item in io.Items)
+                queue.Enqueue(item);
+
+            var rng = new RNGCryptoServiceProvider();
+            byte[] keys = new byte[context.RepoCfg.Ciphers.Length * 32];
+            rng.GetBytes(keys);
+
+            var sourcePath = LocalUtils.GetTempFileName(suffix: "source");
+            var encodedPath = LocalUtils.GetTempFileName(suffix: "encoded");
+            var decodedPath = LocalUtils.GetTempFileName(suffix: "decoded");
+
+            byte[] hash1 = new byte[32];
+            byte[] hash2 = new byte[32];
+
+            var total = 0UL;
+            var errors = 0UL;
+
+            var totalBytes = 0UL;
+
+            var files = new Dictionary<string, long>();
+
+            var encodingTotal = 0L;
+            var decodingTotal = 0L;
+
+            while (queue.Count > 0)
+            {
+                var dirPath = queue.Dequeue();
+                try
+                {
+                    foreach (var item in Directory.EnumerateDirectories(dirPath))
+                    {
+                        queue.Enqueue(item);
+                    }
+                }
+                catch(Exception)
+                { }
+
+                try
+                {
+                    foreach (var item in Directory.EnumerateFiles(dirPath))
+                    {
+                        try
+                        {
+                            var size = new FileInfo(item).Length;
+                            files.Add(item, size);
+                            totalBytes += (ulong)size;
+                        }
+                        catch (Exception)
+                        { }
+                    }
+                }
+                catch(Exception)
+                { }
+            }
+
+            var cursorVisible = Console.CursorVisible;
+            Console.WriteLine();
+
+            var progress = new ProgressBar(totalBytes);
+            var processedBytes = 0L;
+            var skippedBytes = 0L;
+            var encodedBytes = 0L;
+
+            foreach(var kv in files)
+            {
+                progress.Text = $"Processing '{kv.Key}'";
+                progress.Update(processedBytes);
+
+                LocalUtils.TryDeleteFile(sourcePath);
+                LocalUtils.TryDeleteFile(encodedPath);
+                LocalUtils.TryDeleteFile(decodedPath);
+
+                ++total;
+
+                bool copied = false;
+                try
+                {
+                    File.Copy(kv.Key, sourcePath, true);
+                    copied = true;
+                }
+                catch(Exception)
+                {
+                    skippedBytes += kv.Value;
+                }
+
+                if(copied)
+                {
+                    // Remove read-only attribute
+                    var attributes = File.GetAttributes(sourcePath);
+                    File.SetAttributes(sourcePath, attributes & ~FileAttributes.ReadOnly);
+
+                    var sw = Stopwatch.StartNew();
+                    CodecHelper.EncodeFile(ref context, sourcePath, encodedPath, ref hash1);
+                    encodingTotal += sw.ElapsedMilliseconds;
+
+                    encodedBytes += new FileInfo(encodedPath).Length;
+
+                    sw.Start();
+                    CodecHelper.DecodeFile(ref context, encodedPath, decodedPath, ref hash2);
+                    decodingTotal += sw.ElapsedMilliseconds;
+                    var compare = LocalUtils.CompareFiles(sourcePath, decodedPath);
+
+                    if (!compare)
+                    {
+                        context.ErrorWriteLine($"Codec produced different original for '{kv.Key}'");
+                        ++errors;
+                    }
+                    else if (!hash1.SequenceEqual(hash2))
+                    {
+                        context.ErrorWriteLine($"Codec produced different hashes for '{kv.Key}'");
+                        ++errors;
+                    }
+                }
+
+                processedBytes += kv.Value;
+            }
+
+            progress.Text = "";
+            progress.Update(processedBytes);
+
+            Console.WriteLine();
+
+            LocalUtils.TryDeleteFile(sourcePath);
+            LocalUtils.TryDeleteFile(encodedPath);
+            LocalUtils.TryDeleteFile(decodedPath);
+
+            if(errors == 0)
+            {
+                context.AlwaysWriteLine(string.Format("Successfully processed {0:n0} files", total));
+                context.AlwaysWriteLine(string.Format("    {0:n0} total bytes", totalBytes));
+                if(skippedBytes > 0)
+                    context.AlwaysWriteLine(string.Format("    {0:n0} skipped bytes", skippedBytes));
+                var ratio = ((double)totalBytes - skippedBytes) / encodedBytes;
+                context.AlwaysWriteLine(string.Format("    {0:n0} encoded bytes ({1:F2}:1 compression ratio)", encodedBytes, ratio));
+                var mbs = ((double)totalBytes - skippedBytes) / Math.Pow(1024, 2);
+                var secs = (double)encodingTotal / 1000;
+                var mbsPerSec = mbs / secs;
+                context.AlwaysWriteLine(string.Format("    encoding at {0:F2} MB/s", mbsPerSec));
+                secs = (double)decodingTotal / 1000;
+                mbsPerSec = mbs / secs;
+                context.AlwaysWriteLine(string.Format("    decoding at {0:F2} MB/s", mbsPerSec));
+            }
+            else
+            {
+                context.ErrorWriteLine(string.Format("{0:n0} errors in {1:n0} files processed", errors, total));
+            }
+
+            Console.CursorVisible = true;
+            Console.WriteLine();
+        }
+
         static void CmdKeyGen(KeyGenOptions o)
         {
             byte[] key = new byte[o.Bits / 8];
@@ -1114,7 +1310,7 @@ namespace CloudSync.Tool
 
             try
             {
-                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions, MkdirOptions>(args)
+                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions, MkdirOptions, TestCodecOptions>(args)
                     .WithParsed<InitOptions>(opts => CmdInit(opts))
                     .WithParsed<KeyGenOptions>(opts => CmdKeyGen(opts))
                     .WithParsed<EncodeOptions>(opts => CmdEncode(opts))
@@ -1126,6 +1322,7 @@ namespace CloudSync.Tool
                     .WithParsed<MoveOptions>(opts => CmdMove(opts))
                     .WithParsed<VerifyOptions>(opts => CmdVerify(opts))
                     .WithParsed<MkdirOptions>(opts => CmdMkdir(opts))
+                    .WithParsed<TestCodecOptions>(opts => CmdTestCodec(opts))
                     .WithNotParsed(errs => { foreach (var e in errs) ColorConsole.WriteLine($"cync encountered a fatal error: {e.ToString()}".Red()); });
             }
             catch (Exception ee)

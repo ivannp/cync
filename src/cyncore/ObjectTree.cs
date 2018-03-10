@@ -171,6 +171,10 @@ namespace CloudSync.Core
                 using (var localPath = context.Storage.Download(fid.FullPath))
                 using (var decodedPath = new LocalPath(LocalUtils.GetTempFileName(suffix: ".dir")))
                 {
+                    var fi = new FileInfo(localPath.Path);
+                    if (fi.Length < 4)
+                        throw new Exception($"The downloaded file is too short, only {fi.Length} bytes. Minimum is 4.");
+
                     byte[] hash = new byte[32];
                     CodecHelper.DecodeFile(ref context, localPath.Path, decodedPath.Path, ref hash);
 
@@ -463,7 +467,22 @@ namespace CloudSync.Core
                 {
                     // Delete all versions
                     foreach (var version in de.Versions)
-                        context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                    {
+                        var fileId = new FileId(version.Uuid);
+                        if(context.IgnoreErrors)
+                        {
+                            try
+                            {
+                                context.Storage.RemoveFile(fileId.FullPath);
+                            }
+                            catch (Exception)
+                            { }
+                        }
+                        else
+                        {
+                            context.Storage.RemoveFile(fileId.FullPath);
+                        }
+                    }
                 }
                 // Remove the directory entry
                 data.Entries.Remove(name);
@@ -647,6 +666,25 @@ namespace CloudSync.Core
                     context.InfoWriteLine($"Queueing directory '{src}' [target: '{fullDestPath}']");
                 }
 
+                // Compute total size
+                var sizeQueue = new Queue<string>(queue.Select(t => t.Item1).ToList());
+                var totalSize = 0L;
+                while(sizeQueue.Count > 0)
+                {
+                    var path = sizeQueue.Dequeue();
+                    foreach (var ee in Directory.EnumerateFileSystemEntries(path))
+                    {
+                        FileInfo fi = new FileInfo(ee);
+                        if ((fi.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                            sizeQueue.Enqueue(ee);
+                        else
+                            totalSize += fi.Length;
+                    }
+                }
+
+                var progress = new ProgressBar(totalSize);
+                var processedBytes = 0L;
+
                 // Process the queue
                 while (queue.Count > 0)
                 {
@@ -662,9 +700,7 @@ namespace CloudSync.Core
                     {
                         string destPath = LexicalPath.GetFileName(tt.Item2);
                         if (!curDestDir.HasEntry(destPath))
-                        {
                             curDestDir.AddDir(destPath, tt.Item1);
-                        }
                         curDestDir.ChangeDirDown(destPath);
                     }
 
@@ -680,14 +716,28 @@ namespace CloudSync.Core
                         }
                         else
                         {
+                            if(!context.Verbose)
+                            {
+                                progress.Text = $"Processing '{ee}'";
+                                progress.Update(processedBytes);
+                            }
+
                             // A file - copy it
                             var added = curDestDir.PushFile(ee, Path.GetFileName(ee), false);
                             if (added)
                                 context.InfoWriteLine($"Added '{ee}' as '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}'");
                             else
                                 context.InfoWriteLine($"Skipped '{ee}'. The repository file '{LexicalPath.Combine(tt.Item2, Path.GetFileName(ee))}' is newer or the same.");
+
+                            processedBytes += fi.Length;
                         }
                     }
+                }
+
+                if(!context.Verbose)
+                {
+                    progress.Text = "";
+                    progress.Update(processedBytes);
                 }
             }
         }
@@ -797,13 +847,13 @@ namespace CloudSync.Core
             var objects = ListObjects(ref context);
 
             var orphanUuids = uuids.Where(s => !objects.ContainsKey(s)).ToList();
-            var orphanObjects = objects.Where(kv => !uuids.Contains(kv.Key)).Select(kv => kv.Value).ToList();
+            var orphanObjects = objects.Where(kv => !uuids.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
             foreach(var uuid in orphanUuids)
                 context.ErrorWriteLine($"Object {uuid} is an orphan.");
 
             foreach(var obj in orphanObjects)
-                context.ErrorWriteLine($"Path {obj} exists only in the file system metadata.");
+                context.ErrorWriteLine($"Path {obj.Value} exists only in the file system metadata. {obj.Key} doesn't exist in the file system.");
 
             if(orphanUuids.Count > 0 || orphanObjects.Count > 0)
             {

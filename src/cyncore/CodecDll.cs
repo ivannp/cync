@@ -77,9 +77,7 @@ namespace CloudSync.Core
                 return;
 
             if (disposing)
-            {
                 (_dll as IDisposable).Dispose();
-            }
 
             // Free any unmanaged objects here.
 
