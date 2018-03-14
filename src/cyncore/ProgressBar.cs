@@ -20,18 +20,19 @@ namespace CloudSync.Core
         private bool _hasOutput = false;
 
         public string Text { get; set; }
+        public bool Flush { get; set; } = false;
 
         private int _row;
         private int _col;
 
         private int _toDelete;
 
-        public ProgressBar(double max, double step = 1)
+        public ProgressBar(double max, double step = 1, bool flush = false)
         {
             _max = max;
             _min = 0;
             _step = step;
-            _nextUpdate = _min + _step;
+            _nextUpdate = _min;
 
             Console.CursorVisible = false;
 
@@ -39,6 +40,8 @@ namespace CloudSync.Core
             _col = Console.CursorLeft;
 
             _toDelete = 0;
+
+            Flush = flush;
         }
 
         public void Update(double progress)
@@ -60,7 +63,7 @@ namespace CloudSync.Core
             var sb = new StringBuilder();
 
             // Write the percentage and the start
-            sb.Append(string.Format("{0,3:n0}%", fraction * 100));
+            sb.Append(string.Format("{0,3:n0}%", Math.Floor(fraction * 100)));
             sb.Append("  " + _start);
             // Write the filling
             var graphWidth = _width * _fill.Length;
@@ -81,6 +84,9 @@ namespace CloudSync.Core
             Console.CursorLeft = _col;
             Console.CursorTop = _row;
             Console.Write(sb.ToString());
+
+            if (Flush)
+                Console.Out.Flush();
             
             _hasOutput = true;
 

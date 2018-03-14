@@ -66,16 +66,16 @@ namespace CloudSync.Core
 
         class Dir
         {
-            Context context;
-            BaseDir data;
+            Context _context;
+            BaseDir _data;
             // The cannonical path to this directory: /users/rake/documents
-            string path;
-            FileId fid;
-            bool dirty;
+            string _path;
+            FileId _fid;
+            bool _dirty;
 
             public static Dir OpenRoot(ref Context cc)
             {
-                Dir dir = new Dir { context = cc, path = "/", fid = RootId, dirty = false };
+                Dir dir = new Dir { _context = cc, _path = "/", _fid = RootId, _dirty = false };
                 dir.Read();
                 return dir;
             }
@@ -92,7 +92,7 @@ namespace CloudSync.Core
 
             public IEnumerator<KeyValuePair<string, DirEntry>> GetEnumerator()
             {
-                return data.Entries.GetEnumerator();
+                return _data.Entries.GetEnumerator();
             }
 
             public static Dir Open(ref Context context, string path, bool create = false, bool filePathOk = false)
@@ -102,7 +102,7 @@ namespace CloudSync.Core
                 for (int ii = 0; ii < dirs.Length; ++ii)
                 {
                     DirEntry de;
-                    bool exists = dir.data.Entries.TryGetValue(dirs[ii], out de);
+                    bool exists = dir._data.Entries.TryGetValue(dirs[ii], out de);
                     if (exists)
                     {
                         if (IsFile(de))
@@ -119,8 +119,8 @@ namespace CloudSync.Core
                         }
 
                         // Ascend into the next entry
-                        dir.path += "/" + dirs[ii];
-                        dir.fid = new FileId(de.Versions[0].Uuid);
+                        dir._path += "/" + dirs[ii];
+                        dir._fid = new FileId(de.Versions[0].Uuid);
                         dir.Read();
                     }
                     else
@@ -133,13 +133,13 @@ namespace CloudSync.Core
                             VersionEntry ve = new VersionEntry { Uuid = tt.Item2, LastWriteTime = DateTime.Now.Ticks };
                             DirEntry newDirEntry = new DirEntry { Type = DirEntryType.Dir, Latest = 0 };
                             newDirEntry.Versions.Add(ve);
-                            dir.data.Entries.Add(dirs[ii], newDirEntry);
+                            dir._data.Entries.Add(dirs[ii], newDirEntry);
                             dir.Write();
 
                             // Acend into the created directory
-                            dir.path = LexicalPath.Combine(dir.path, dirs[ii]);
-                            dir.fid = new FileId(tt.Item2);
-                            dir.data = tt.Item1.data;
+                            dir._path = LexicalPath.Combine(dir._path, dirs[ii]);
+                            dir._fid = new FileId(tt.Item2);
+                            dir._data = tt.Item1._data;
                         }
                         else
                         {
@@ -152,13 +152,13 @@ namespace CloudSync.Core
 
             public static Tuple<Dir, string> MakeNewDir(ref Context cc)
             {
-                Dir dir = new Dir { context = cc };
-                dir.data = new BaseDir();
-                dir.data.Eyecatcher = EyeCatcher;
+                Dir dir = new Dir { _context = cc };
+                dir._data = new BaseDir();
+                dir._data.Eyecatcher = EyeCatcher;
 
                 var uuid = Guid.NewGuid().ToString("N");
 
-                dir.fid = new FileId(uuid);
+                dir._fid = new FileId(uuid);
 
                 dir.Write();
 
@@ -168,7 +168,7 @@ namespace CloudSync.Core
             public void Read()
             {
                 // Download the directory file
-                using (var localPath = context.Storage.Download(fid.FullPath))
+                using (var localPath = _context.Storage.Download(_fid.FullPath))
                 using (var decodedPath = new LocalPath(LocalUtils.GetTempFileName(suffix: ".dir")))
                 {
                     var fi = new FileInfo(localPath.Path);
@@ -176,13 +176,13 @@ namespace CloudSync.Core
                         throw new Exception($"The downloaded file is too short, only {fi.Length} bytes. Minimum is 4.");
 
                     byte[] hash = new byte[32];
-                    CodecHelper.DecodeFile(ref context, localPath.Path, decodedPath.Path, ref hash);
+                    CodecHelper.DecodeFile(ref _context, localPath.Path, decodedPath.Path, ref hash);
 
                     // Read the directory content
                     using (Stream ss = OpenTempFileForReading(decodedPath.Path))
                     {
                         MessageParser<BaseDir> parser = new MessageParser<BaseDir>(() => new BaseDir());
-                        data = parser.ParseFrom(ss);
+                        _data = parser.ParseFrom(ss);
                     }
                 }
             }
@@ -194,7 +194,7 @@ namespace CloudSync.Core
                     using (FileStream fs = File.OpenWrite(rawContent.Path))
                     {
                         // Serialize the content
-                        data.WriteTo(fs);
+                        _data.WriteTo(fs);
                     }
 
                     if (!File.Exists(rawContent.Path))
@@ -204,15 +204,15 @@ namespace CloudSync.Core
                     using (var encodedPath = new LocalPath(LocalUtils.GetTempFileName(prefix: "cync", suffix: ".edir")))
                     {
                         byte[] hash = new byte[32];
-                        CodecHelper.EncodeFile(ref context, rawContent.Path, encodedPath.Path, ref hash);
+                        CodecHelper.EncodeFile(ref _context, rawContent.Path, encodedPath.Path, ref hash);
 
                         // Make sure the target directory exists
-                        context.Storage.CreateDirectory(fid.DirectoryPath);
+                        _context.Storage.CreateDirectory(_fid.DirectoryPath);
 
                         // Upload the encoded file
-                        context.Storage.Upload(encodedPath.Path, fid.FullPath, true);
+                        _context.Storage.Upload(encodedPath.Path, _fid.FullPath, true);
 
-                        dirty = false;
+                        _dirty = false;
                     }
                 }
             }
@@ -234,24 +234,24 @@ namespace CloudSync.Core
 
             public bool TryGetEntry(string entry, out DirEntry de)
             {
-                return data.Entries.TryGetValue(entry, out de);
+                return _data.Entries.TryGetValue(entry, out de);
             }
 
             public bool HasEntry(string entry)
             {
-                return data.Entries.ContainsKey(entry);
+                return _data.Entries.ContainsKey(entry);
             }
 
             public void AddEntry(string name, DirEntry de)
             {
-                data.Entries.Add(name, de);
+                _data.Entries.Add(name, de);
             }
 
             public void AddDir(string name, string existingPath = null)
             {
                 if (!TryGetEntry(name, out DirEntry de))
                 {
-                    var tt = MakeNewDir(ref context);
+                    var tt = MakeNewDir(ref _context);
                     long lastWriteTime, lastAccessTime, creationTime;
                     if (existingPath == null)
                     {
@@ -269,7 +269,7 @@ namespace CloudSync.Core
                     VersionEntry ve = new VersionEntry { Uuid = tt.Item2, LastWriteTime = lastWriteTime, LastAccessTime = lastAccessTime, CreationTime = creationTime };
                     DirEntry newDirEntry = new DirEntry { Type = DirEntryType.Dir, Latest = 0 };
                     newDirEntry.Versions.Add(ve);
-                    data.Entries.Add(name, newDirEntry);
+                    _data.Entries.Add(name, newDirEntry);
 
                     // Write the updated directory
                     Write();
@@ -289,8 +289,8 @@ namespace CloudSync.Core
                     throw new PathException("The entry is a file, not a directory. Failed to change directory.");
                 }
 
-                path = LexicalPath.Combine(path, subDir);
-                fid = new FileId(de.Versions[de.Latest].Uuid);
+                _path = LexicalPath.Combine(_path, subDir);
+                _fid = new FileId(de.Versions[de.Latest].Uuid);
                 Read();
             }
 
@@ -310,7 +310,7 @@ namespace CloudSync.Core
                         var fi = new FileInfo(dest);
                         if ((ulong)fi.Length == ve.Length)
                         {
-                            if (context.UseChecksums)
+                            if (_context.UseChecksums)
                             {
                                 // If the hashes are also the same, skip the file
                                 byte[] destHash = new byte[32];
@@ -329,9 +329,9 @@ namespace CloudSync.Core
                 }
 
                 var fid = new FileId(ve.Uuid);
-                var encoded = context.Storage.Download(fid.FullPath);
+                var encoded = _context.Storage.Download(fid.FullPath);
                 byte[] hash = new byte[32];
-                CodecHelper.DecodeFile(ref context, encoded.Path, dest, ref hash);
+                CodecHelper.DecodeFile(ref _context, encoded.Path, dest, ref hash);
 
                 // Restore the file times
                 File.SetCreationTimeUtc(dest, new DateTime(ve.CreationTime));
@@ -363,7 +363,7 @@ namespace CloudSync.Core
                             {
                                 changeDetected = true;
                             }
-                            else if(context.UseChecksums)
+                            else if(_context.UseChecksums)
                             {
                                 // Checksum check
                                 byte[] sha256 = new byte[32];
@@ -405,7 +405,7 @@ namespace CloudSync.Core
                 using (var lp = new LocalPath(LocalUtils.GetTempFileName()))
                 {
                     var hash = new byte[32];
-                    CodecHelper.EncodeFile(ref context, src, lp.Path, ref hash);
+                    CodecHelper.EncodeFile(ref _context, src, lp.Path, ref hash);
 
                     var newVersionEntry = new VersionEntry
                     {
@@ -424,9 +424,9 @@ namespace CloudSync.Core
                         de.Versions.Add(newVersionEntry);
                         Debug.Assert(de.Latest == 0);
                     }
-                    else if (de.Versions.Count > 0 && de.Versions.Count >= context.RepoCfg.MaxVersions)
+                    else if (de.Versions.Count > 0 && de.Versions.Count >= _context.RepoCfg.MaxVersions)
                     {
-                        de.Latest = (de.Latest + 1) % context.RepoCfg.MaxVersions;
+                        de.Latest = (de.Latest + 1) % _context.RepoCfg.MaxVersions;
                         versionToRemove = de.Versions[de.Latest];
                         de.Versions[de.Latest] = newVersionEntry;
                     }
@@ -438,13 +438,13 @@ namespace CloudSync.Core
 
                     // The in-memory directory is updated, perform the file operations
                     FileId fid = new FileId(newVersionEntry.Uuid);
-                    context.Storage.CreateDirectory(fid.DirectoryPath);
-                    context.Storage.Upload(lp.Path, fid.FullPath);
+                    _context.Storage.CreateDirectory(fid.DirectoryPath);
+                    _context.Storage.Upload(lp.Path, fid.FullPath);
                 }
 
                 // Remove the previous version if necessary
                 if (versionToRemove != null)
-                    context.Storage.RemoveFile((new FileId(versionToRemove.Uuid)).FullPath);
+                    _context.Storage.RemoveFile((new FileId(versionToRemove.Uuid)).FullPath);
 
                 Write();
 
@@ -469,35 +469,35 @@ namespace CloudSync.Core
                     foreach (var version in de.Versions)
                     {
                         var fileId = new FileId(version.Uuid);
-                        if(context.IgnoreErrors)
+                        if(_context.IgnoreErrors)
                         {
                             try
                             {
-                                context.Storage.RemoveFile(fileId.FullPath);
+                                _context.Storage.RemoveFile(fileId.FullPath);
                             }
                             catch (Exception)
                             { }
                         }
                         else
                         {
-                            context.Storage.RemoveFile(fileId.FullPath);
+                            _context.Storage.RemoveFile(fileId.FullPath);
                         }
                     }
                 }
                 // Remove the directory entry
-                data.Entries.Remove(name);
-                dirty = true;
+                _data.Entries.Remove(name);
+                _dirty = true;
                 Write();
             }
 
             public void RemoveAllEntries()
             {
-                foreach(var kv in data.Entries)
+                foreach(var kv in _data.Entries)
                 {
                     // Delete all versions
                     foreach (var version in kv.Value.Versions)
                     {
-                        context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
+                        _context.Storage.RemoveFile(new FileId(version.Uuid).FullPath);
                     }
                 }
             }
@@ -682,7 +682,7 @@ namespace CloudSync.Core
                     }
                 }
 
-                var progress = new ProgressBar(totalSize);
+                var progress = new ProgressBar(totalSize, flush: true);
                 var processedBytes = 0L;
 
                 // Process the queue

@@ -163,7 +163,10 @@ namespace CloudSync.Core
             {
                 // Single column output
                 for (var i = 0; i < nameColumn.Count; ++i)
-                    Console.WriteLine(nameColumn.Items[indexes[i]]);
+                {
+                    _config.ItemAction(nameColumn.Items[indexes[i]], itemList[indexes[i]]);
+                    _config.EndOfLineAction();
+                }
             }
         }
 
