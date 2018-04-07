@@ -24,6 +24,7 @@
     <Compile Include="..\..\src\cyncore\ItemInfo.cs" Link="ItemInfo.cs" />
     <Compile Include="..\..\src\cyncore\LexicalPath.cs" Link="LexicalPath.cs" />
     <Compile Include="..\..\src\cyncore\LinuxDll.cs" Link="LinuxDll.cs" />
+    <Compile Include="..\..\src\cyncore\LocalPath.cs" Link="LocalPath.cs" />
     <Compile Include="..\..\src\cyncore\LocalStorage.cs" Link="LocalStorage.cs" />
     <Compile Include="..\..\src\cyncore\LocalUtils.cs" Link="LocalUtils.cs" />
     <Compile Include="..\..\src\cyncore\LogHelper.cs" Link="LogHelper.cs" />
