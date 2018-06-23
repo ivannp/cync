@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -407,8 +408,7 @@ namespace CloudSync.Tool
             }
             else
             {
-                context.ErrorWriteLine($"Currently --key-file is the only supported authentication and is required. A key can be generated via 'cync keygen'");
-                return;
+                context.Key = GetKey();
             }
 
             context.Verbose = io.Verbose;
@@ -508,6 +508,10 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+            else
+            {
+                context.Key = GetKey();
+            }
 
             context.Verbose = options.Verbose;
 
@@ -600,6 +604,10 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+            else
+            {
+                context.Key = GetKey();
+            }
 
             context.Verbose = options.Verbose;
 
@@ -679,6 +687,10 @@ namespace CloudSync.Tool
             else if (jcfg["KeyFile"] != null)
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
+            }
+            else
+            {
+                context.Key = GetKey();
             }
 
             void itemAction(string str, ItemInfo itemInfo)
@@ -775,6 +787,10 @@ namespace CloudSync.Tool
             else if (jcfg["KeyFile"] != null)
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
+            }
+            else
+            {
+                context.Key = GetKey();
             }
 
             context.IgnoreErrors = options.IgnoreErrors;
@@ -879,6 +895,10 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+            else
+            {
+                context.Key = GetKey();
+            }
 
             tree.Move(ref context, src, dest);
 
@@ -939,6 +959,10 @@ namespace CloudSync.Tool
             else if (jcfg["KeyFile"] != null)
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
+            }
+            else
+            {
+                context.Key = GetKey();
             }
 
             tree.Verify(ref context, options.Repair);
@@ -1001,8 +1025,12 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(jcfg["KeyFile"].ToString()));
             }
+            else
+            {
+                context.Key = GetKey();
+            }
 
-            foreach(var item in options.Items)
+            foreach (var item in options.Items)
             {
                 var path = LexicalPath.Clean(item);
                 if (path[0] != '/')
@@ -1023,6 +1051,10 @@ namespace CloudSync.Tool
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
             }
+            else
+            {
+                context.Key = GetKey();
+            }
 
             var items = options.Items.ToList();
 
@@ -1039,6 +1071,10 @@ namespace CloudSync.Tool
             if (options.KeyFile != null)
             {
                 context.Key = Convert.FromBase64String(File.ReadAllText(options.KeyFile));
+            }
+            else
+            {
+                context.Key = GetKey();
             }
 
             var items = options.Items.ToList();
@@ -1311,6 +1347,44 @@ namespace CloudSync.Tool
                 ErrorWriteLine = (s) => ColorConsole.WriteLine(s.Red()),
                 InfoWriteLine = (verbose ? (Action<string>)((s) => ColorConsole.WriteLine(s.Gray())) : (s) => {})
             };
+        }
+
+        static string GetPassword()
+        {
+            Console.Write("Password: ");
+            var result = new StringBuilder();
+            while (true)
+            {
+                var keyInfo = Console.ReadKey(true);
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    break;
+                }
+                else if (keyInfo.Key == ConsoleKey.Backspace)
+                {
+                    if (result.Length > 0)
+                    {
+                        result.Remove(result.Length - 1, 1);
+                        Console.Write("\b \b");
+                    }
+                }
+                else
+                {
+                    result.Append(keyInfo.KeyChar);
+                    Console.Write("*");
+                }
+            }
+            return result.ToString();
+        }
+
+        static byte [] GetKey()
+        {
+            var password = GetPassword();
+            var hash = new byte[32];
+            var encoding = new UTF8Encoding();
+
+            CodecHelper.ComputeDataHash(encoding.GetBytes(password), ref hash);
+            return hash;
         }
 
         static void Main(string[] args)

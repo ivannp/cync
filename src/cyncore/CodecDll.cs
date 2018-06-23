@@ -17,6 +17,9 @@ namespace CloudSync.Core
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void ComputeHashDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void ComputeDataHashDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen);
+
         private bool _disposed = false;
 
         private readonly IDll _dll;
@@ -25,6 +28,7 @@ namespace CloudSync.Core
         private EncodeFileDelegate _encodeFile;
         private DecodeFileDelegate _decodeFile;
         private ComputeHashDelegate _computeHash;
+        private ComputeDataHashDelegate _computeDataHash;
 
         private static CodecDll _instance { get; } = new CodecDll();
 
@@ -41,6 +45,7 @@ namespace CloudSync.Core
             _encodeFile = (EncodeFileDelegate)_dll.GetDelegate<EncodeFileDelegate>("EncodeFile");
             _decodeFile = (DecodeFileDelegate)_dll.GetDelegate<DecodeFileDelegate>("DecodeFile");
             _computeHash = (ComputeHashDelegate)_dll.GetDelegate<ComputeHashDelegate>("ComputeHash");
+            _computeDataHash = (ComputeDataHashDelegate)_dll.GetDelegate<ComputeDataHashDelegate>("ComputeDataHash");
         }
 
         public static void GenerateKey(byte[] buf, uint bufLen)
@@ -61,6 +66,11 @@ namespace CloudSync.Core
         public static void ComputeHash(byte[] buf, uint bufLen, byte[] hash, uint hashLen)
         {
             _instance._computeHash(buf, bufLen, hash, hashLen);
+        }
+
+        public static void ComputeDataHash(byte[] buf, uint bufLen, byte[] hash, uint hashLen)
+        {
+            _instance._computeDataHash(buf, bufLen, hash, hashLen);
         }
 
         public void Dispose()

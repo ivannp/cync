@@ -33,6 +33,9 @@
     <ClCompile Include="..\..\src\encoding\GenerateKey.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\encoding\ComputeDataHashParams.pb.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\encoding\ComputeHashParams.pb.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\encoding\FileHeader.pb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\encoding\ComputeDataHashParams.pb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

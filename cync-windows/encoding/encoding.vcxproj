@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\encoding\ComputeDataHashParams.pb.cc" />
     <ClCompile Include="..\..\src\encoding\ComputeHash.cpp" />
     <ClCompile Include="..\..\src\encoding\ComputeHashParams.pb.cc" />
     <ClCompile Include="..\..\src\encoding\EncodeFile.cpp" />
@@ -27,6 +28,7 @@
     <ClCompile Include="..\..\src\encoding\GenerateKey.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\encoding\ComputeDataHashParams.pb.h" />
     <ClInclude Include="..\..\src\encoding\ComputeHashParams.pb.h" />
     <ClInclude Include="..\..\src\encoding\EncodingConfig.pb.h" />
     <ClInclude Include="..\..\src\encoding\FileHeader.pb.h" />

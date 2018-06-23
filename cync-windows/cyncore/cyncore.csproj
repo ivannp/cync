@@ -10,6 +10,7 @@
     <Compile Include="..\..\src\cyncore\CodecDll.cs" Link="CodecDll.cs" />
     <Compile Include="..\..\src\cyncore\CodecHelper.cs" Link="CodecHelper.cs" />
     <Compile Include="..\..\src\cyncore\CommandLineException.cs" Link="CommandLineException.cs" />
+    <Compile Include="..\..\src\cyncore\ComputeDataHashParams.cs" Link="ComputeDataHashParams.cs" />
     <Compile Include="..\..\src\cyncore\ComputeHashParams.cs" Link="ComputeHashParams.cs" />
     <Compile Include="..\..\src\cyncore\ConsoleListOutputter.cs" Link="ConsoleListOutputter.cs" />
     <Compile Include="..\..\src\cyncore\Context.cs" Link="Context.cs" />

@@ -44,6 +44,20 @@ namespace CloudSync.Core
             }
         }
 
+        public static void ComputeDataHash(byte[] data, ref byte[] hash)
+        {
+            var b = new ComputeDataHashParams { };
+            b.Hash = "sha256";
+            b.Data = ByteString.CopyFrom(data);
+            b.Iterations = 1000;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                b.WriteTo(ms);
+                CodecDll.ComputeDataHash(ms.GetBuffer(), (uint)ms.Length, hash, (uint)hash.Length);
+            }
+        }
+
         public static void GenerateKey(ref byte[] key)
         {
             CodecDll.GenerateKey(key, (uint)key.Length);
