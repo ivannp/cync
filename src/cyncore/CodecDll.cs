@@ -12,7 +12,7 @@ namespace CloudSync.Core
         private delegate void EncodeFileDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void DecodeFileDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen);
+        private delegate void DecodeFileDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen, byte [] expectedHash);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void ComputeHashDelegate(byte[] buf, uint bufLen, byte[] hash, uint hashLen);
@@ -53,9 +53,9 @@ namespace CloudSync.Core
             _instance._encodeFile(buf, bufLen, hash, hashLen);
         }
 
-        public static void DecodeFile(byte[] buf, uint bufLen, byte[] hash, uint hashLen)
+        public static void DecodeFile(byte[] buf, uint bufLen, byte[] hash, uint hashLen, byte[] exptectedHash)
         {
-            _instance._decodeFile(buf, bufLen, hash, hashLen);
+            _instance._decodeFile(buf, bufLen, hash, hashLen, exptectedHash);
         }
 
         public static void ComputeHash(byte[] buf, uint bufLen, byte[] hash, uint hashLen)

@@ -18,7 +18,7 @@ namespace CloudSync.Core
             }
         }
 
-        public static void DecodeFile(ref Context context, string src, string dest, ref byte[] hash)
+        public static void DecodeFile(ref Context context, string src, string dest, ref byte[] hash, ref byte[] expectedHash)
         {
             context.InitEncodingConfig();
             context.EncodingCfg.Src = src;
@@ -27,7 +27,7 @@ namespace CloudSync.Core
             using (MemoryStream ms = new MemoryStream())
             {
                 context.EncodingCfg.WriteTo(ms);
-                CodecDll.DecodeFile(ms.GetBuffer(), (uint)ms.Length, hash, (uint)hash.Length);
+                CodecDll.DecodeFile(ms.GetBuffer(), (uint)ms.Length, hash, (uint)hash.Length, expectedHash);
             }
         }
 

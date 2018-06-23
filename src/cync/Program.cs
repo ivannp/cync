@@ -1043,8 +1043,9 @@ namespace CloudSync.Tool
 
             var items = options.Items.ToList();
 
-            byte[] hash = new byte[256];
-            CodecHelper.DecodeFile(ref context, items[0], items[1], ref hash);
+            byte[] hash = new byte[32];
+            byte[] expectedHash = new byte[32];
+            CodecHelper.DecodeFile(ref context, items[0], items[1], ref hash, ref expectedHash);
         }
 
         static void CmdTestCodec(TestCodecOptions io)
@@ -1076,6 +1077,7 @@ namespace CloudSync.Tool
 
             byte[] hash1 = new byte[32];
             byte[] hash2 = new byte[32];
+            byte[] expectedHash = new byte[32];
 
             var total = 0UL;
             var errors = 0UL;
@@ -1161,17 +1163,25 @@ namespace CloudSync.Tool
                     encodedBytes += new FileInfo(encodedPath).Length;
 
                     sw.Start();
-                    CodecHelper.DecodeFile(ref context, encodedPath, decodedPath, ref hash2);
+                    CodecHelper.DecodeFile(ref context, encodedPath, decodedPath, ref hash2, ref expectedHash);
                     decodingTotal += sw.ElapsedMilliseconds;
                     var compare = LocalUtils.CompareFiles(sourcePath, decodedPath);
 
                     if (!compare)
                     {
+                        context.ErrorWriteLine("");
                         context.ErrorWriteLine($"Codec produced different original for '{kv.Key}'");
+                        ++errors;
+                    }
+                    else if (!hash1.SequenceEqual(expectedHash))
+                    {
+                        context.ErrorWriteLine("");
+                        context.ErrorWriteLine($"Codec produced different hashes for '{kv.Key}'");
                         ++errors;
                     }
                     else if (!hash1.SequenceEqual(hash2))
                     {
+                        context.ErrorWriteLine("");
                         context.ErrorWriteLine($"Codec produced different hashes for '{kv.Key}'");
                         ++errors;
                     }

@@ -176,7 +176,8 @@ namespace CloudSync.Core
                         throw new Exception($"The downloaded file is too short, only {fi.Length} bytes. Minimum is 4.");
 
                     byte[] hash = new byte[32];
-                    CodecHelper.DecodeFile(ref _context, localPath.Path, decodedPath.Path, ref hash);
+                    byte[] expectedHash = new byte[32];
+                    CodecHelper.DecodeFile(ref _context, localPath.Path, decodedPath.Path, ref hash, ref expectedHash);
 
                     // Read the directory content
                     using (Stream ss = OpenTempFileForReading(decodedPath.Path))
@@ -331,7 +332,11 @@ namespace CloudSync.Core
                 var fid = new FileId(ve.Uuid);
                 var encoded = _context.Storage.Download(fid.FullPath);
                 byte[] hash = new byte[32];
-                CodecHelper.DecodeFile(ref _context, encoded.Path, dest, ref hash);
+                byte[] expectedHash = new byte[32];
+                CodecHelper.DecodeFile(ref _context, encoded.Path, dest, ref hash, ref expectedHash);
+
+                if (!expectedHash.SequenceEqual(hash))
+                    throw new Exception("The data signature seems wrong. It's possible that file content is damaged.");
 
                 // Restore the file times
                 File.SetCreationTimeUtc(dest, new DateTime(ve.CreationTime));

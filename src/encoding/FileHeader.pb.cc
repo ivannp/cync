@@ -61,6 +61,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::sotcore::FileHeader, compression_level_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::sotcore::FileHeader, ciphers_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::sotcore::FileHeader, ivs_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::sotcore::FileHeader, checksum_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::sotcore::FileHeader)},
@@ -92,17 +93,17 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\020FileHeader.proto\022\007sotcore\"\212\001\n\nFileHead"
+      "\n\020FileHeader.proto\022\007sotcore\"\234\001\n\nFileHead"
       "er\0222\n\020compression_type\030\001 \001(\0162\030.sotcore.C"
       "ompressionType\022\031\n\021compression_level\030\002 \001("
       "\005\022 \n\007ciphers\030\003 \003(\0162\017.sotcore.Cipher\022\013\n\003i"
-      "vs\030\004 \003(\014*\033\n\017CompressionType\022\010\n\004ZLIB\020\000*:\n"
-      "\006Cipher\022\r\n\tUNDEFINED\020\000\022\007\n\003AES\020\001\022\013\n\007TWOFI"
-      "SH\020\002\022\013\n\007SERPENT\020\003B\021\252\002\016CloudSync.Coreb\006pr"
-      "oto3"
+      "vs\030\004 \003(\014\022\020\n\010checksum\030\005 \001(\014*\033\n\017Compressio"
+      "nType\022\010\n\004ZLIB\020\000*:\n\006Cipher\022\r\n\tUNDEFINED\020\000"
+      "\022\007\n\003AES\020\001\022\013\n\007TWOFISH\020\002\022\013\n\007SERPENT\020\003B\021\252\002\016"
+      "CloudSync.Coreb\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 284);
+      descriptor, 302);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "FileHeader.proto", &protobuf_RegisterTypes);
 }
@@ -158,6 +159,7 @@ const int FileHeader::kCompressionTypeFieldNumber;
 const int FileHeader::kCompressionLevelFieldNumber;
 const int FileHeader::kCiphersFieldNumber;
 const int FileHeader::kIvsFieldNumber;
+const int FileHeader::kChecksumFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 FileHeader::FileHeader()
@@ -175,6 +177,10 @@ FileHeader::FileHeader(const FileHeader& from)
       ivs_(from.ivs_),
       _cached_size_(0) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
+  checksum_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.checksum().size() > 0) {
+    checksum_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.checksum_);
+  }
   ::memcpy(&compression_type_, &from.compression_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&compression_level_) -
     reinterpret_cast<char*>(&compression_type_)) + sizeof(compression_level_));
@@ -182,6 +188,7 @@ FileHeader::FileHeader(const FileHeader& from)
 }
 
 void FileHeader::SharedCtor() {
+  checksum_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&compression_type_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&compression_level_) -
       reinterpret_cast<char*>(&compression_type_)) + sizeof(compression_level_));
@@ -194,6 +201,7 @@ FileHeader::~FileHeader() {
 }
 
 void FileHeader::SharedDtor() {
+  checksum_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void FileHeader::SetCachedSize(int size) const {
@@ -227,6 +235,7 @@ void FileHeader::Clear() {
 
   ciphers_.Clear();
   ivs_.Clear();
+  checksum_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&compression_type_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&compression_level_) -
       reinterpret_cast<char*>(&compression_type_)) + sizeof(compression_level_));
@@ -313,6 +322,18 @@ bool FileHeader::MergePartialFromCodedStream(
         break;
       }
 
+      // bytes checksum = 5;
+      case 5: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(42u /* 42 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_checksum()));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
       default: {
       handle_unusual:
         if (tag == 0) {
@@ -370,6 +391,12 @@ void FileHeader::SerializeWithCachedSizes(
       4, this->ivs(i), output);
   }
 
+  // bytes checksum = 5;
+  if (this->checksum().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      5, this->checksum(), output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -411,6 +438,13 @@ void FileHeader::SerializeWithCachedSizes(
   for (int i = 0, n = this->ivs_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteBytesToArray(4, this->ivs(i), target);
+  }
+
+  // bytes checksum = 5;
+  if (this->checksum().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        5, this->checksum(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -457,6 +491,13 @@ size_t FileHeader::ByteSizeLong() const {
       this->ivs(i));
   }
 
+  // bytes checksum = 5;
+  if (this->checksum().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->checksum());
+  }
+
   // .sotcore.CompressionType compression_type = 1;
   if (this->compression_type() != 0) {
     total_size += 1 +
@@ -501,6 +542,10 @@ void FileHeader::MergeFrom(const FileHeader& from) {
 
   ciphers_.MergeFrom(from.ciphers_);
   ivs_.MergeFrom(from.ivs_);
+  if (from.checksum().size() > 0) {
+
+    checksum_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.checksum_);
+  }
   if (from.compression_type() != 0) {
     set_compression_type(from.compression_type());
   }
@@ -535,6 +580,7 @@ void FileHeader::InternalSwap(FileHeader* other) {
   using std::swap;
   ciphers_.InternalSwap(&other->ciphers_);
   ivs_.InternalSwap(&other->ivs_);
+  checksum_.Swap(&other->checksum_);
   swap(compression_type_, other->compression_type_);
   swap(compression_level_, other->compression_level_);
   _internal_metadata_.Swap(&other->_internal_metadata_);

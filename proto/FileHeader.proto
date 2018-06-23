@@ -25,4 +25,5 @@ message FileHeader {
 
     repeated Cipher ciphers = 3;
     repeated bytes ivs = 4;
+    bytes checksum = 5;
 }

@@ -41,8 +41,9 @@ namespace CloudSync.UnitTests
         private bool CodecRun(Context context, string raw, string encoded, string decoded)
         {
             byte[] hash = new byte[32];
+            byte[] expectedHash = new byte[32];
             CodecHelper.EncodeFile(ref context, raw, encoded, ref hash);
-            CodecHelper.DecodeFile(ref context, encoded, decoded, ref hash);
+            CodecHelper.DecodeFile(ref context, encoded, decoded, ref hash, ref expectedHash);
             return CompareFiles(raw, decoded);
         }
 

@@ -207,16 +207,6 @@ extern "C"
             }
         }
 
-        // Write the file header, its size first
-        string bb;
-        fileHeader.SerializeToString(&bb);
-        uint32_t size = (uint32_t)bb.size();
-        ofs.write((char *)&size, 4);
-		if (size > 0)
-		{
-			ofs.write(&bb[0], bb.size());
-		}
-
         Deflator compression(lastTransform, cfg.compression_level());
         SHA256 sha256;
         HashFilter hf(sha256, new ArraySink((byte *)hash, hashLen));
@@ -225,9 +215,22 @@ extern "C"
 		ifstream ifs;
 		OpenInputFileStream(cfg.src().c_str(), ios::in | ios::binary, ifs);
 		FileSource ss(ifs, true, cs);
+
+		fileHeader.mutable_checksum()->resize(hashLen);
+		memcpy(&(*fileHeader.mutable_checksum())[0], hash, hashLen);
+
+		// Write the file header, its size last
+		string b;
+		fileHeader.SerializeToString(&b);
+		uint32_t footerSize = (uint32_t)b.size();
+		if (footerSize > 0)
+		{
+			ofs.write(&b[0], b.size());
+		}
+		ofs.write((char *)&footerSize, 4);
     }
 
-    DLL_API void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen)
+    DLL_API void DecodeFile(const char * buf, unsigned bufLen, char * hash, unsigned hashLen, char * expectedHash)
     {
         DestructorList encryptionDestructors;
 
@@ -239,17 +242,33 @@ extern "C"
         ifstream ifs;
 		OpenInputFileStream(cfg.src().c_str(), ios::binary | ios::in, ifs);
 
-        // Deserialize the file header structure
-        uint32_t size;
-        ifs.read((char *)&size, 4);
-        string bb;
-		if (size > 0)
+        // Deserialize the file header structure. First read the footer size.
+		ifs.seekg(0, ifs.end);
+		uint64_t fileSize = (uint64_t)ifs.tellg();
+		ifs.seekg(fileSize - 4, ifs.beg);
+		uint32_t footerSize;
+		ifs.read((char *)&footerSize, 4);
+		string b;
+		uint64_t dataSize = fileSize - 4 - footerSize;
+		if (footerSize > 0)
 		{
-			bb.resize(size);
-			ifs.read(&bb[0], size);
+			// Read the footer
+			ifs.seekg(dataSize, ifs.beg);
+			
+			if (footerSize > 0)
+			{
+				b.resize(footerSize);
+				ifs.read(&b[0], footerSize);
+			}
 		}
+
         sotcore::FileHeader fileHeader;
-        fileHeader.ParseFromString(bb);
+        fileHeader.ParseFromString(b);
+
+		memcpy(expectedHash, fileHeader.checksum().data(), min((uint64_t)hashLen, fileHeader.checksum().size())),
+
+		// Rewind
+		ifs.seekg(0, ifs.beg);
 
 		ofstream ofs;
 		OpenOutputFileStream(cfg.dest().c_str(), ios::binary | ios::out | ios::trunc, ofs);
@@ -300,6 +319,8 @@ extern "C"
             }
         }
 
-        FileSource ss(ifs, true, lastTransform);
+        FileSource ss(ifs, false, lastTransform);
+		auto readSize = ss.Pump(dataSize);
+		ss.Flush(true);
     }
 }
