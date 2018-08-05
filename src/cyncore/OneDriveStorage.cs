@@ -20,15 +20,12 @@ namespace CloudSync.Core
         private const string _cacheFileName = "onedrive.cache";
 
         private const string _clientId = "fc1e93cb-e530-4afb-b75d-aacbafdc5353";
-        private const string _returnUrl = "urn:ietf:wg:oauth:2.0:oob";
-        private static string[] _scopes = { "Files.ReadWrite.All" };
+        private const string _secret = "aVABQ48045$?$zawvosZBA~";
 
         private readonly string _rootPath;
         private readonly string _store;
-        private TokenCache _tokenCache;
+        private AzureAuthenticationProvider _authenticationProvider;
         private GraphServiceClient _graphServiceClient;
-        private PublicClientApplication _clientApp;
-        private AuthenticationResult _auth;
 
         private string TokenCachePath {
             get
@@ -42,7 +39,7 @@ namespace CloudSync.Core
             _rootPath = rootPath;
             _store = store;
 
-            GetAuthenticatedClient();
+            GetGraphClient();
         }
 
         public JObject ToJson()
@@ -246,102 +243,10 @@ namespace CloudSync.Core
             }
         }
 
-        private void TokenCacheAfterAccess(TokenCacheNotificationArgs args)
+        private void GetGraphClient()
         {
-            if (TokenCachePath == null)
-                return;
-
-            if (!args.TokenCache.HasStateChanged)
-                return;
-
-            System.IO.File.WriteAllBytes(TokenCachePath, args.TokenCache.Serialize());
-            args.TokenCache.HasStateChanged = false;
-        }
-
-        private void TokenCacheBeforeAccess(TokenCacheNotificationArgs args)
-        {
-            if (TokenCachePath == null)
-                return;
-
-            if (!System.IO.File.Exists(TokenCachePath))
-                return;
-
-            args.TokenCache.Deserialize(System.IO.File.ReadAllBytes(TokenCachePath));
-        }
-
-        private void GetAuthenticatedClient()
-        {
-            if (_graphServiceClient == null)
-            {
-                //_tokenCache = new TokenCache();
-                //if (System.IO.File.Exists(TokenCachePath))
-                //    _tokenCache.Deserialize(System.IO.File.ReadAllBytes(TokenCachePath));
-                //_tokenCache.SetAfterAccess(TokenCacheAfterAccess);
-                //_tokenCache.SetBeforeAccess(TokenCacheBeforeAccess);
-
-                //_clientApp = new PublicClientApplication(_clientId, "https://login.microsoftonline.com/common", _tokenCache);
-                _clientApp = new PublicClientApplication(_clientId);
-
-                // Create Microsoft Graph client.
-                try
-                {
-                    _graphServiceClient = new GraphServiceClient(
-                        "https://graph.microsoft.com/v1.0",
-                        new DelegateAuthenticationProvider(
-                            async (requestMessage) =>
-                            {
-                                var token = await GetUserTokenAsync();
-                                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-
-                            }));
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error($"Could not create a graph client: {ex.Message}");
-                }
-            }
-        }
-
-        private async Task<string> GetUserTokenAsync()
-        {
-            bool retry = true;
-            if(_auth != null && _auth.User != null)
-            {
-                try
-                {
-                    _auth = await _clientApp.AcquireTokenSilentAsync(_scopes, _auth.User);
-                    retry = false;
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            if(retry)
-            {
-                if (_auth == null || _auth.User == null || _auth.ExpiresOn <= DateTimeOffset.UtcNow.AddMinutes(5))
-                {
-                    _auth = await _clientApp.AcquireTokenAsync(_scopes);
-                }
-            }
-
-            return _auth.AccessToken;
-        }
-
-        private void SaveToken()
-        {
-            var jo = new JObject
-            {
-                ["AccessToken"] = _auth.AccessToken,
-                ["ExpiresOn"] = _auth.ExpiresOn.ToUnixTimeMilliseconds(),
-                ["UserIdentifier"] = _auth.User.Identifier,
-                ["UserName"] = _auth.User.Name
-            };
-            System.IO.File.WriteAllText(_store, jo.ToString());
-        }
-
-        private void LoadToken()
-        {
+            _authenticationProvider = new AzureAuthenticationProvider(_clientId, _secret, "common", _store);
+            _graphServiceClient = new GraphServiceClient(_authenticationProvider);
         }
 
         private string EncodePath(string path)

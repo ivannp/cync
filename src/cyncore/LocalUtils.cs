@@ -77,5 +77,13 @@ namespace CloudSync.Core
             }
             throw new PathException($"Failed to create a temp file path in {RETRIES} retries.");
         }
+
+        public static void CreateSecureFolder(string path)
+        {
+            if (Directory.Exists(path))
+                return;
+
+            Directory.CreateDirectory(path);
+        }
     }
 }

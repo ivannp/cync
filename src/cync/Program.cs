@@ -363,6 +363,7 @@ namespace CloudSync.Tool
         static void CmdInit(InitOptions io)
         {
             string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync");
+            LocalUtils.CreateSecureFolder(dotPath);
 
             IObjectTree tree = null;
 
