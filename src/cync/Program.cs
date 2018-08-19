@@ -360,6 +360,11 @@ namespace CloudSync.Tool
             public IEnumerable<string> Items { get; set; }
         }
 
+        [Verb("forget", HelpText = "Forgets cached information.")]
+        class ForgetOptions
+        {
+        }
+
         static void CmdInit(InitOptions io)
         {
             string dotPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync");
@@ -1271,6 +1276,11 @@ namespace CloudSync.Tool
                 Console.WriteLine(Convert.ToBase64String(key));
         }
 
+        static void CmdForget(ForgetOptions o)
+        {
+            Directory.Delete(DotPath, true);
+        }
+
         public static string DotPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".cync"); } }
 
         static IStorage RepoFromJson(JObject json)
@@ -1395,7 +1405,7 @@ namespace CloudSync.Tool
 
             try
             {
-                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions, MkdirOptions, TestCodecOptions>(args)
+                Parser.Default.ParseArguments<InitOptions, KeyGenOptions, EncodeOptions, DecodeOptions, PushOptions, PullOptions, ListOptions, RemoveOptions, MoveOptions, VerifyOptions, MkdirOptions, TestCodecOptions, ForgetOptions>(args)
                     .WithParsed<InitOptions>(opts => CmdInit(opts))
                     .WithParsed<KeyGenOptions>(opts => CmdKeyGen(opts))
                     .WithParsed<EncodeOptions>(opts => CmdEncode(opts))
@@ -1407,6 +1417,7 @@ namespace CloudSync.Tool
                     .WithParsed<MoveOptions>(opts => CmdMove(opts))
                     .WithParsed<VerifyOptions>(opts => CmdVerify(opts))
                     .WithParsed<MkdirOptions>(opts => CmdMkdir(opts))
+                    .WithParsed<ForgetOptions>(opts => CmdForget(opts))
                     .WithParsed<TestCodecOptions>(opts => CmdTestCodec(opts))
                     .WithNotParsed(errs => { foreach (var e in errs) ColorConsole.WriteLine($"cync encountered a fatal error: {e.ToString()}".Red()); });
             }
