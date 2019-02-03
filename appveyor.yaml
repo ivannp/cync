@@ -1,25 +1,4 @@
-image:
-  - Visual Studio 2017
-
 before_build:
   ps: Write-Host (Get-Location).Path
   ps: cd c:\projects
   ps: Write-Host (Get-Location).Path
-#  ps: git clone https://github.com/Microsoft/vcpkg.git
-
-build: off
-
-branches:
-  only:
-    master
-
-configuration:
-  Debug
-
-platform:
-  - x64
-
-
-
-test_script:
-  - ps: Write-Host "Print from AppVeyor"
