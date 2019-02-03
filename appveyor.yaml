@@ -1,0 +1,6 @@
+branches:
+  only:
+    master
+
+test_script:
+  - ps: Write-Host "Print from AppVeyor"
