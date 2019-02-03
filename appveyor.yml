@@ -9,15 +9,28 @@ configuration:
   - Debug
 
 init:
-#  - ps: Write-Host (Get-Location).Path
   - cmd: cd c:\projects
-#  - ps: Write-Host (Get-Location).Path
   - cmd: git clone https://github.com/Microsoft/vcpkg.git vcpkg
   - cmd: cd vcpkg
   - cmd: git reset --hard 61e2cac730cc8b16c9373c6c463a335a21a1496a
   - cmd: .\bootstrap-vcpkg.bat
   - cmd: .\vcpkg integrate install
   - cmd: .\vcpkg install protobuf:x64-windows
+  - cmd: cd c:\projects\cync
 
-build: off
-#  project: cync-windows.sln
+before_build:
+  - cmd: cd c:/projects/cync/cync-windows/src/encoding
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
+  - cmd: cd c:/projects/cync/cync-windows/src/cyncore
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\BaseDir.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
+  - cmd: cd c:\projects\cync
+
+build:
+  project: cync-windows.sln
