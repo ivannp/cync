@@ -6,6 +6,9 @@ image:
 
 platform: x64
 
+configuration:
+  - Debug
+
 init:
   - cmd: cmake --version
 #  - ps: Write-Host (Get-Location).Path
@@ -13,4 +16,4 @@ init:
 #  - ps: Write-Host (Get-Location).Path
 
 build:
-  project: cync-windows/cync-windows.sln
+  project: cync-windows.sln
