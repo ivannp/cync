@@ -1,4 +1,4 @@
-before_build:
+init:
   ps: Write-Host (Get-Location).Path
   ps: cd c:\projects
   ps: Write-Host (Get-Location).Path
