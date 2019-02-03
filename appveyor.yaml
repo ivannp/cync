@@ -7,8 +7,9 @@ image:
 platform: x64
 
 init:
-  - ps: Write-Host (Get-Location).Path
-  - ps: cd c:\projects
-  - ps: Write-Host (Get-Location).Path
+  - cmd: cmake --version
+#  - ps: Write-Host (Get-Location).Path
+#  - ps: cd c:\projects
+#  - ps: Write-Host (Get-Location).Path
 
 build: off
