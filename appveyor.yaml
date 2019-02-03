@@ -15,5 +15,5 @@ init:
 #  - ps: cd c:\projects
 #  - ps: Write-Host (Get-Location).Path
 
-build:
-  project: cync-windows.sln
+build: off
+#  project: cync-windows.sln
