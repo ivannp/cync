@@ -1,4 +1,4 @@
 init:
-  ps: Write-Host (Get-Location).Path
-  ps: cd c:\projects
-  ps: Write-Host (Get-Location).Path
+  - ps: Write-Host (Get-Location).Path
+  - ps: cd c:\projects
+  - ps: Write-Host (Get-Location).Path
