@@ -12,6 +12,12 @@ init:
   - ps: Write-Host (Get-Location).Path
   - ps: cd c:\projects
   - ps: Write-Host (Get-Location).Path
+  - ps: git clone https://github.com/Microsoft/vcpkg.git
+  - ps: cd vcpkg
+  - ps: git reset --hard 61e2cac730cc8b16c9373c6c463a335a21a1496a
+  - ps: .\bootstrap-vcpkg.bat
+  - ps: .\vcpkg integrate install
+  - ps: .\vcpkg install protobuf:x64-windows
 
 build: off
 #  project: cync-windows.sln
