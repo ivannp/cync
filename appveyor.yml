@@ -12,7 +12,7 @@ init:
 #  - ps: Write-Host (Get-Location).Path
   - cmd: cd c:\projects
 #  - ps: Write-Host (Get-Location).Path
-  - cmd: git clone https://github.com/Microsoft/vcpkg.git vcpgk
+  - cmd: git clone https://github.com/Microsoft/vcpkg.git vcpkg
   - cmd: cd vcpkg
   - cmd: git reset --hard 61e2cac730cc8b16c9373c6c463a335a21a1496a
   - cmd: .\bootstrap-vcpkg.bat
