@@ -1,3 +1,11 @@
+# Specify version format
+version: "{build}"
+
+image:
+  - Visual Studio 2017
+
+platform: x64
+
 init:
   - ps: Write-Host (Get-Location).Path
   - ps: cd c:\projects
