@@ -1,7 +1,7 @@
 image:
 - Visual Studio 2017
 
-install:
+before_build:
   ps: Write-Host (Get-Location).Path
   ps: cd c:\projects
   ps: Write-Host (Get-Location).Path
