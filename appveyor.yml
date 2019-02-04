@@ -33,4 +33,4 @@ before_build:
   - cmd: cd c:\projects\cync
 
 build:
-  project: cync-windows.sln
+  project: cync-windows/cync-windows.sln
