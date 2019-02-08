@@ -21,16 +21,16 @@ init:
 
 before_build:
   - cmd: cd c:/projects/cync/src/encoding
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --cpp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
   - cmd: cd c:/projects/cync/src/cyncore
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\BaseDir.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
-  - cmd: c:/projects/vcpkg/installed\x64-windows\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\BaseDir.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\ComputeDataHashParams.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
+  - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
   - cmd: cd c:\projects\cync
 
 build:
