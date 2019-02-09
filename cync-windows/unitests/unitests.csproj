@@ -98,7 +98,6 @@
   <Import Project="..\packages\MSTest.TestAdapter.1.2.0\build\net45\MSTest.TestAdapter.targets" Condition="Exists('..\packages\MSTest.TestAdapter.1.2.0\build\net45\MSTest.TestAdapter.targets')" />
   <PropertyGroup>
     <PostBuildEvent>echo f | xcopy /d /v /y /q $(SolutionDir)$(PlatformName)\$(ConfigurationName)\encoding.dll $(TargetDir)encoding.dll
-echo f | xcopy /d /v /y /q $(SolutionDir)$(PlatformName)\$(ConfigurationName)\encoding.pdb $(TargetDir)encoding.pdb
-xcopy /d /v /y /q $(SolutionDir)dlls-windows\$(ConfigurationName)\*.dll $(TargetDir)</PostBuildEvent>
+echo f | xcopy /d /v /y /q $(SolutionDir)$(PlatformName)\$(ConfigurationName)\encoding.pdb $(TargetDir)encoding.pdb</PostBuildEvent>
   </PropertyGroup>
 </Project>

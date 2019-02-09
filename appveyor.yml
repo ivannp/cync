@@ -32,6 +32,7 @@ before_build:
   - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\EncodingConfig.proto
   - cmd: c:/projects/vcpkg/installed\x64-windows-static\tools\protobuf\protoc.exe --csharp_out=. --proto_path ..\..\proto ..\..\proto\FileHeader.proto
   - cmd: cd c:\projects\cync
+  - cmd: nuget restore cync-windows/cync-windows.sln
 
 build:
   project: cync-windows/cync-windows.sln
