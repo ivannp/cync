@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/ghyrukvqowcqlcel/branch/master?svg=true)](https://ci.appveyor.com/project/ivannp/cync/branch/master)
+
 # cync
 cync is a portable cloud synchronization utility
 
